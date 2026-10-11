@@ -1,15 +1,17 @@
+Current implementation: see `raw_processing.md`. Remaining steps below describe scientific validation and future coupling analyses.
+
 # LFP build order and acceptance gates
 
 1. **Figure 6B panel renderer — implemented.** Validate baseline normalization,
    STFT parameters, frequency/time axes, rejection masks, shared color limits,
    finite-input failure, zero-baseline handling. Synthetic run only so far.
-2. **Raw preparation and Figure 6A — next.** Inventory every layout electrode;
+2. **Raw preparation and Figure 6A — initial implementation available.** Inventory every layout electrode;
    validate sample rates/lengths and timestamp continuity; cross-check DIN events.
    Define reference groups explicitly, pre-screen bad channels, anti-alias before
    resampling, filter continuous data with adequate context, preserve originals.
    Conventional CAR and blech_clust's median/MAD-normalized reference are different
    choices: record which is used and run reference sensitivity comparisons.
-3. **Requested QC.** Require finite/nonconstant signals. Flag robust outliers using
+3. **Requested QC — initial implementation available.** Require finite/nonconstant signals. Flag robust outliers using
    abs(x-median)/(1.4826*MAD)>10 and fail fractions >1%. Handle zero MAD explicitly.
    Flat fraction uses sustained identical-value runs: provisional minimum 10 ms,
    not isolated adjacent equal samples. Retain both metrics. Compute raw and LFP QC

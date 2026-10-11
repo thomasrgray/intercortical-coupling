@@ -9,7 +9,7 @@ Record exact pipeline version, reference method/groups and filtering history.
 The audited blech_clust CAR modifies HDF5 `/raw`; the audited legacy LFP extractor
 reads amplifier DAT files. Do not infer CAR merely from `use_auto_CAR=true`.
 
-## Canonical tables for the planned preparation stage
+## Canonical tables for preparation
 
 - sessions: animal_id, session_id, source_path, raw_fs_hz, sample_count, source revision.
 - channels: array_position, electrode_id, filename, region, reference_group, inclusion reason.
@@ -38,7 +38,7 @@ Never shorten all conditions to the minimum trial count. Exclusions preserve IDs
 | provenance_json | scalar Unicode | JSON with source, reference, filtering, qc_method, event_alignment |
 
 The first implementation is TTL-aligned; retain at least -2 to +2 seconds
-(prefer the existing -2 to +5 s snippets). A future adapter must also save the
+(prefer the existing -2 to +5 s snippets). The preparation command saves the
 canonical event table alongside this archive. Different trial counts are allowed.
 No voltage interpolation across rejected artifacts is performed by the power stage.
 Rejected samples may be nonfinite; accepted trials may not.

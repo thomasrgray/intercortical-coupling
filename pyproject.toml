@@ -11,6 +11,8 @@ dependencies = ["numpy>=1.24", "scipy>=1.10", "matplotlib>=3.7"]
 
 [project.scripts]
 coupling-power = "coupling.power:main"
+coupling-scan-dins = "coupling.events:main"
+coupling-prepare = "coupling.prepare:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

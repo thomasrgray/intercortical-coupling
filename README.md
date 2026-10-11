@@ -29,12 +29,24 @@ coupling-power results/demo_input.npz results/demo_power
 The demo is SYNTHETIC; it is a rendering/numerical check, not a biological result.
 An existing output directory is rejected; choose a new directory for each run.
 
-## What is specified but not implemented
+## Raw recording processing — available now
 
-Raw-to-cleaned preparation, automatic channel/trial QC, nasal respiration alignment,
-coherence, Granger, spikes, HMMs, GLMs and grand averages. No placeholder silently
-returns an analysis. The two uploaded raw channels do not permit group CAR or
-same-region peer QC. Do not treat the input provenance declaration as proof of QC.
+```bash
+coupling-scan-dins /path/to/recording /path/to/results/din_scan
+coupling-prepare /path/to/recording configs/tg22_feb2.example.json /path/to/results/session_run --plot-power
+```
+
+Edit the example's explicit amplifier/region/reference-group mapping and stimulus
+labels for your recording. All configured amplifier files must exist. The output
+must be a NEW directory OUTSIDE the recording directory.
+Read `docs/raw_processing.md` for defaults, QC and limitations.
+
+## Still planned
+
+Respiration alignment, coherence, Granger, spike analyses, HMMs, GLMs and grand
+averages. Raw preparation and automatic QC are now implemented, but have not yet
+been validated end-to-end on a complete biological session. No study outcomes
+are assumed from successful synthetic tests.
 
 ## Directory organization
 

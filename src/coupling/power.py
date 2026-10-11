@@ -98,6 +98,7 @@ def analyze(source, output, clim=3.):
         raise FileExistsError(output)
     with np.load(source, allow_pickle=False) as d:
         provenance = validate(d)
+        voltage = d["lfp_uv"]  # NPZ arrays decompress on access: load once, not per trial.
         rows, panels, counts = [], [], []
         grid = None
         for region in REGIONS:
@@ -107,7 +108,7 @@ def analyze(source, output, clim=3.):
                     total, count = None, None
                     trials = np.flatnonzero((d["stimulus"] == stim) & d["good_trial"][c])
                     for r in trials:
-                        f,t,z,valid = normalize_power(d["lfp_uv"][c,r], d["time_s"])
+                        f,t,z,valid = normalize_power(voltage[c,r], d["time_s"])
                         crop = (t >= -1-1e-9) & (t <= 1.75+1e-9)
                         z = z[:,crop]; grid = (f,t[crop])
                         if total is None:
