@@ -47,3 +47,11 @@ physiological timings. Its broadly flat spectrum and rapid candidate rates raise
 a signal-quality/ADC-assignment concern. No detector accuracy against manually
 annotated biological breaths, polarity, swallow timing or neural respiratory
 alignment has been validated. See respiration_validation.md.
+
+## ADC subsample processing check
+
+Two additional tests check recovery of a known 4 Hz waveform amid a high-frequency
+component, agreement between raw-rate and resample-first filtering, and constant,
+short and unsupported-rate handling. Three fixed TG22 30 s segments were run
+through both methods and a shuffled-sample control; their figure was inspected.
+This is processing validation, not biological breath detection validation.

@@ -301,3 +301,21 @@ spectral quality and TTL/phase alignment in one session. Default polarity is
 unknown, and automatic detections are not certified breaths.
 See [copy-paste commands, methods and TG22 signal-quality concern](docs/respiration_validation.md).
 Neural respiratory realignment and pPC spike reliability remain future work.
+
+### Copy-paste: independent ADC subsample check
+
+On `feat/respiration-validation` (PR #4; check merge status before switching):
+
+```bash
+python -m pip install -e .
+SESSION="/media/thomas/Data/TG22/Feb2_OrthoRetro_TG22_260202_170014"
+ADC_RUN="$PWD/results/TG22_adc_check_$(date +%Y%m%d_%H%M%S)"
+python -m coupling.adc_check "$SESSION/board-ADC-00.dat" "$SESSION/info.rhd" "$ADC_RUN"
+```
+
+This reads three fixed 30-second segments, compares filtering at the raw rate
+against resampling first, and includes a shuffled-sample noise control. It saves
+PNG/PDF/SVG and JSON with exact raw offsets and segment hashes. If memory is an
+issue, use `--seconds 20` with a new output folder. It does not silently change
+the ADC datatype, accept respiratory events, or bypass full-session timestamp/DIN
+checks. See [diagnostic interpretation](docs/respiration_validation.md).

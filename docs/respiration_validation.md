@@ -139,3 +139,41 @@ sample of trials across all six stimuli, then test detector agreement with those
 annotations. Only afterward add inhale/exhale-aligned LFP or pPC spike reliability.
 Full sorted spike arrays, unit-quality information and verified unit-region mapping
 are needed for the latter and were not supplied in this increment.
+
+## Independent ADC subsample diagnostic
+
+`python -m coupling.adc_check ADC HEADER OUTPUT [--seconds 30]` reads only
+fixed early/middle/late segments (20–120 s each). It applies the same fourth-order
+0.5–20 Hz zero-phase filter directly at the raw rate, then decimates to 1 kHz;
+the comparison path uses the production polyphase resampler before filtering.
+Five seconds at each segment edge are discarded. This is a numerical sensitivity
+check, not a replacement timing detector. Raw-rate filtering provides anti-alias
+attenuation before the diagnostic decimation; no bare stride sampling is used
+as an unfiltered spectrum. The current diagnostic requires integer multiples of
+1 kHz. Output folders must be new and outside the ADC source directory.
+
+A fixed-seed permutation of raw samples retains the amplitude distribution while
+removing temporal ordering. It demonstrates that smooth cycles can arise from
+filtering noise. It is not a physiological reference signal or a valid surrogate
+for route-dependent neural coupling. Plot raw/filtered counts on separate axes;
+filtered recorded/control panels use matching limits per row. Do not compare
+amplitudes across different axes. JSON retains source metadata, exact segment
+sample offsets, SHA256 fingerprints, and both processing-path metrics.
+
+TG22 uploaded-input check: RHD v1.5, board mode 0, 30 kHz, only ADC-00 enabled;
+its custom name is also ADC-00 and notes are empty. Thus the header does not
+establish sensor identity or polarity. Uint16 little-endian agrees with Intan's
+per-channel ADC format [2]; changing interpretation to produce a plausible trace
+would be unjustified. Counts are centered only for display, not calibrated pressure.
+For the fixed 30 s segments, processing-path correlations were 0.99923, 0.99950,
+0.99919; RMS differences were 4.00%, 3.20%, 4.08% of direct-filter SD. No rail
+samples occurred. Segment spectral flatness was 0.875, 0.895, 0.867, versus shuffled
+controls 0.890, 0.891, 0.867. Short-segment Welch estimates average fewer windows
+than the full-session PSD, so these values are not directly comparable to the
+full-session 0.9994. No flatness cutoff or equivalence test was applied.
+
+This reduces concern that resampling alone created the observed signal, but does
+not distinguish weak pressure, wrong physical input, acquisition noise, or signal
+present elsewhere in the recording. Confirm wiring and review independently
+identified breaths before interpreting any candidate latency. Neural coupling,
+respiratory neural locking, swallowing and odor arrival remain unresolved.
