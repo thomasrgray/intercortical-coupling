@@ -68,3 +68,8 @@ are assumed from successful synthetic tests.
 
 `data/` and `results/` are ignored by Git. Keep actual recordings outside this repo.
 See `docs/github_setup.md` for creating the private remote repository.
+
+## Compare saved power panels
+
+Use `coupling-compare-power` for two panels with a shared color scale and optional
+left-minus-right difference. Export PNG/PDF/SVG; see [commands and interpretation](docs/power_comparison.md).
