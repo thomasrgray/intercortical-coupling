@@ -1,0 +1,13 @@
+__pycache__/
+*.egg-info/
+.venv/
+data/
+results/
+*.dat
+*.rhd
+*.h5
+*.hdf5
+*.npz
+*.npy
+*.nc
+.DS_Store

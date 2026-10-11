@@ -1,0 +1,36 @@
+{
+  "session_id": "Feb2_OrthoRetro_TG22_260202_170014",
+  "animal_id": "TG22",
+  "raw_fs_hz": 30000,
+  "lfp_fs_hz": 1000,
+  "source_directory": "SET_LOCAL_SESSION_PATH",
+  "stimulus_by_din": {
+    "0": "BA",
+    "1": "S",
+    "2": "oIA",
+    "3": "IA",
+    "4": "oBA",
+    "5": "BK"
+  },
+  "route_by_stimulus": {
+    "BA": "retro",
+    "IA": "retro",
+    "S": "retro",
+    "oBA": "ortho",
+    "oIA": "ortho",
+    "BK": "ortho"
+  },
+  "matched_pairs": [
+    [
+      "BA",
+      "oBA"
+    ],
+    [
+      "IA",
+      "oIA"
+    ]
+  ],
+  "electrode_layout": "Feb2_OrthoRetro_TG22_260202_170014_electrode_layout.csv",
+  "reference_method": "UNRESOLVED",
+  "status": "Metadata example; not a raw preprocessing command"
+}

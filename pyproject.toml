@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "intercortical-coupling"
+version = "0.1.0"
+description = "Figure-first analyses of orthonasal and retronasal GC-PC recordings"
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.24", "scipy>=1.10", "matplotlib>=3.7"]
+
+[project.scripts]
+coupling-power = "coupling.power:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
