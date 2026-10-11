@@ -38,12 +38,14 @@ def downsample_counts(raw, fs):
     return result
 
 
-def detect_cycles(filtered):
+def detect_cycles(filtered, minimum_hz=1., maximum_hz=15., prominence_mad=.5):
     """Negative-going crossing before a prominent trough, then positive crossing.
 
     Samples are explicitly pressure-phase candidates until polarity is verified.
     Local periods and trough prominence are screening heuristics, not probabilities.
     """
+    if not np.isfinite([minimum_hz, maximum_hz, prominence_mad]).all() or not (0 < minimum_hz < maximum_hz <= 50) or prominence_mad <= 0:
+        raise ValueError("Invalid cycle screening settings")
     x = np.asarray(filtered, dtype=float)
     if x.ndim != 1 or not np.isfinite(x).all():
         raise ValueError('Need finite 1D pressure')
@@ -52,7 +54,7 @@ def detect_cycles(filtered):
         return []
     neg = np.flatnonzero((x[:-1] >= 0) & (x[1:] < 0))+1
     pos = np.flatnonzero((x[:-1] <= 0) & (x[1:] > 0))+1
-    peaks, props = find_peaks(-x, distance=math.ceil(FS/15), prominence=.5*scale)
+    peaks, props = find_peaks(-x, distance=math.ceil(FS/maximum_hz), prominence=prominence_mad*scale)
     rows = []
     seen = set()
     for peak, prominence in zip(peaks, props['prominences']):
@@ -67,8 +69,8 @@ def detect_cycles(filtered):
         offset = int(pos[j])
         hz = FS/(next_onset-onset)
         reasons = []
-        if not 1 <= hz <= 15:
-            reasons.append('cycle_rate_outside_1_15_hz')
+        if not minimum_hz <= hz <= maximum_hz:
+            reasons.append('cycle_rate_outside_configured_bounds')
         if min(offset-onset, next_onset-offset) < 10:
             reasons.append('phase_shorter_than_10ms')
         rows.append(dict(cycle_id=len(rows), negative_start_sample=onset,

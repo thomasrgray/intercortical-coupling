@@ -320,3 +320,13 @@ PNG/PDF/SVG and JSON with exact raw offsets and segment hashes. If memory is an
 issue, use `--seconds 20` with a new output folder. It does not silently change
 the ADC datatype, accept respiratory events, or bypass full-session timestamp/DIN
 checks. See [diagnostic interpretation](docs/respiration_validation.md).
+
+## Optional respiration-aligned LFPs
+
+`python -m coupling.respiration_lfp PREPARED RESPIRATION_AUDIT configs/respiration_alignment.example.json`
+reuses continuous LFP/ADC caches for matched DIN/respiratory-event power, pressure
+heatmaps, latency summaries and trial-level exclusions. It creates a new session
+subfolder named exactly `LFPs matched to brathing`. Unknown polarity or unreviewed
+breathing stays prominently provisional. See [method, commands and limitations](docs/respiration_lfp.md),
+including Maier's upward-zero-crossing definition and the separate retro expiration
+hypothesis. This optional extension does not establish measured odor arrival.
