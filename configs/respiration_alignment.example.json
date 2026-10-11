@@ -1,0 +1,52 @@
+{
+  "definition_verified": true,
+  "definition_source": "Maier et al. 2012, Measurement and analysis of respiration: upward zero crossings of 0.5\u201320 Hz filtered signal; https://pmc.ncbi.nlm.nih.gov/articles/PMC3525522/. Detector prominence, rate screens and first-event window are additional provisional engineering choices.",
+  "detector": {
+    "bandpass_hz": [
+      0.5,
+      20
+    ],
+    "minimum_hz": 1.0,
+    "maximum_hz": 15.0,
+    "prominence_mad": 0.5
+  },
+  "stimuli": {
+    "BA": {
+      "route": "retronasal",
+      "landmark": "negative",
+      "delay_s": 0.0,
+      "window_s": 2.0
+    },
+    "IA": {
+      "route": "retronasal",
+      "landmark": "negative",
+      "delay_s": 0.0,
+      "window_s": 2.0
+    },
+    "S": {
+      "route": "intraoral_taste",
+      "landmark": "negative",
+      "delay_s": 0.0,
+      "window_s": 2.0
+    },
+    "oBA": {
+      "route": "orthonasal",
+      "landmark": "positive",
+      "delay_s": 0.0,
+      "window_s": 2.0
+    },
+    "oIA": {
+      "route": "orthonasal",
+      "landmark": "positive",
+      "delay_s": 0.0,
+      "window_s": 2.0
+    },
+    "BK": {
+      "route": "orthonasal_blank",
+      "landmark": "positive",
+      "delay_s": 0.0,
+      "window_s": 2.0
+    }
+  },
+  "expected_audit_sign": "unknown"
+}

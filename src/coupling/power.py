@@ -21,8 +21,12 @@ SETTINGS = dict(fs_hz=1000, window="hann", nperseg=500, noverlap=499,
                 weighting="equal trials within channel, then equal channels",
                 boundary=None, padded=False, detrend=False)
 
-def normalize_power(x, time_s):
-    """One accepted channel/trial, with baseline-only moments for each frequency."""
+def normalize_power(x, time_s, baseline_reference=None):
+    """One accepted trial; optional reference supplies shared baseline moments.
+
+    The reference uses the same time grid and DIN-relative baseline interval.
+    Omitting it preserves the original per-trial normalization.
+    """
     x = np.asarray(x, dtype=float)
     time_s = np.asarray(time_s, dtype=float)
     if x.ndim != 1 or x.shape != time_s.shape or not np.isfinite(x).all():
@@ -37,7 +41,15 @@ def normalize_power(x, time_s):
     b = (t >= -1.5-1e-9) & (t < -.5-1e-9)
     if time_s[0] > -1.75+1e-9 or time_s[-1] < 1.999-1e-9 or b.sum() < 2:
         raise ValueError("Need input covering at least -1.75 to +1.999 seconds")
-    mu, sd = p[:, b].mean(-1), p[:, b].std(-1)
+    baseline_power = p
+    if baseline_reference is not None:
+        reference = np.asarray(baseline_reference, dtype=float)
+        if reference.shape != x.shape or not np.isfinite(reference).all():
+            raise ValueError("Baseline reference must match the finite trial shape")
+        _, _, rz = stft(reference, fs=1000, window="hann", nperseg=500, noverlap=499,
+                        boundary=None, padded=False, detrend=False)
+        baseline_power = np.abs(rz[keep])**2
+    mu, sd = baseline_power[:, b].mean(-1), baseline_power[:, b].std(-1)
     valid = np.isfinite(sd) & (sd > np.finfo(float).eps * np.maximum(1., np.abs(mu)))
     norm = np.full_like(p, np.nan)
     np.divide(p-mu[:, None], sd[:, None], out=norm, where=valid[:, None])
