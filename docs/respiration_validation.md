@@ -27,18 +27,19 @@ figure and candidate pressure phases, with empty inhale/exhale latency fields
 and zero trials marked usable for physiological timing. This is a successful
 audit, not a failure to detect breathing. No waveform or polarity is guessed.
 
-After independent polarity verification, replace the unknown label in a NEW run:
+If this recording used the same differential wiring as the Maier setup, the published polarity convention is positive-going inspiration. After confirming the wiring, use a NEW run and document that basis:
 
 ```bash
-read -r -p "Verified inhalation deflection (negative or positive): " INHALE_SIGN
-read -r -p "Independent evidence for polarity: " POLARITY_NOTE
+INHALE_SIGN="positive"
+POLARITY_NOTE="Same Honeywell 24PCAFA6G and Grass P55 differential wiring as Maier et al. 2012; lab setup confirmation; paper defines inspiration as positive-going."
 read -r -p "Evidence from manual waveform/breath review: " WAVEFORM_NOTE
 RESP_VERIFIED="$PWD/results/TG22_Feb2_respiration_reviewed_$(date +%Y%m%d_%H%M%S)"
 coupling-respiration-qc "$SESSION" configs/tg22_feb2.example.json "$RESP_VERIFIED" --inhalation-sign "$INHALE_SIGN" --polarity-note "$POLARITY_NOTE" --waveform-review-note "$WAVEFORM_NOTE"
 ```
 
-Only supply these notes after verifying them against acquisition documentation,
-calibration or independently observed breaths. An attractive alignment plot is
+Use the positive setting only if the differential wiring/orientation matches the
+published setup. The separate waveform review note must describe actual inspection
+of this recording, not the literature convention. An attractive alignment plot is
 not independent verification. The tool records user review; it cannot certify
 that the note is correct or replace trial-by-trial waveform inspection.
 
@@ -115,12 +116,9 @@ recording has 102,814,080 samples at 30 kHz (3427.136 s); all lengths agree and
 selected DINs yield 180 original trials. In unknown-polarity mode all 180 have
 screened phase candidates, but **zero are approved for physiological timing**.
 
-The first 0.5–20 Hz spectrum has spectral flatness 0.9994 (near 1 indicates a flat spectrum), and candidate cycles are often fast (median 11.1 Hz across all candidates). These values are descriptive diagnostics, not validated rejection thresholds. This
-raises a concern about noise, weak catheter signal or ADC identity, and prevents
-biological timing interpretation. Successful automatic detection does not resolve
-that concern. Confirm the ADC assignment, nasal catheter patency/pressure chain,
-polarity and observable breaths before aligning neural data to these candidates.
-The detector cutoffs were not relaxed to make this session pass.
+The first 0.5–20 Hz spectrum has spectral flatness 0.9994 (near 1 indicates a flat spectrum), and candidate cycles are often fast (median 11.1 Hz across all candidates). These values are descriptive diagnostics, not validated rejection thresholds. Tom confirms this session used the same Honeywell pressure sensor and Grass differential preamplifier chain as the Maier laboratory setup. Maier et al. (2012) specify Honeywell 24PCAFA6G and Grass P55 at 100×, and define inhalation as a positive-going pressure voltage deflection (upward zero crossing); exhalation is negative-going [3]. If the session's differential input wiring matches that setup, the expected inhalation polarity is therefore positive. The ADC header itself does not store sensor model or differential wiring, so this is lab-provided setup provenance plus the published polarity convention, not a fact recovered from the DAT header.
+
+The flat full-session spectrum and similar shuffled-control segment spectra still raise a concern about signal quality. The named sensor/amplifier model is no longer an open question; remaining candidates include ADC input assignment/differential wiring, catheter patency, amplifier configuration, or a weak/noisy signal. The segment test shows resampling is not the cause. Before interpreting candidate latency, inspect the fixed segments and annotate recognizable breaths across conditions. Detector cutoffs were not relaxed.
 
 ## Literature and next gate
 
@@ -133,10 +131,15 @@ as ortho; it does not prescribe this detector or numerical thresholds.
    [doi:10.1523/JNEUROSCI.1926-16.2016](https://doi.org/10.1523/JNEUROSCI.1926-16.2016).
 2. Intan Technologies. *RHD2000 Data File Formats.*
    [Official format documentation](https://www.intantech.com/files/Intan_RHD2000_data_file_formats.pdf).
+3. Maier JX, Wachowiak M, Katz DB (2012). *Chemosensory convergence on primary
+   olfactory cortex.* The paper specifies the Honeywell 24PCAFA6G, Grass P55 at
+   100×, and inspiratory positive-going voltage deflection.
+   [doi:10.1523/JNEUROSCI.3540-12.2012](https://doi.org/10.1523/JNEUROSCI.3540-12.2012).
 
-Next: resolve ADC identity/signal quality/polarity, manually evaluate a fixed
-sample of trials across all six stimuli, then test detector agreement with those
-annotations. Only afterward add inhale/exhale-aligned LFP or pPC spike reliability.
+Next: use the published positive-going inspiration convention only if the
+recording differential wiring matches the lab-confirmed setup; manually annotate
+a fixed trial sample across all six stimuli, then test detector agreement with
+those annotations. Only afterward add inhale/exhale-aligned LFP or pPC spike reliability.
 Full sorted spike arrays, unit-quality information and verified unit-region mapping
 are needed for the latter and were not supplied in this increment.
 
@@ -161,8 +164,9 @@ amplitudes across different axes. JSON retains source metadata, exact segment
 sample offsets, SHA256 fingerprints, and both processing-path metrics.
 
 TG22 uploaded-input check: RHD v1.5, board mode 0, 30 kHz, only ADC-00 enabled;
-its custom name is also ADC-00 and notes are empty. Thus the header does not
-establish sensor identity or polarity. Uint16 little-endian agrees with Intan's
+its custom name is also ADC-00 and notes are empty. The user confirms the physical Honeywell/Grass P55 chain; the header itself does
+not encode that sensor or wiring. The published matching setup defines inspiration
+as positive-going. Uint16 little-endian agrees with Intan's
 per-channel ADC format [2]; changing interpretation to produce a plausible trace
 would be unjustified. Counts are centered only for display, not calibrated pressure.
 For the fixed 30 s segments, processing-path correlations were 0.99923, 0.99950,
@@ -172,8 +176,9 @@ controls 0.890, 0.891, 0.867. Short-segment Welch estimates average fewer window
 than the full-session PSD, so these values are not directly comparable to the
 full-session 0.9994. No flatness cutoff or equivalence test was applied.
 
-This reduces concern that resampling alone created the observed signal, but does
-not distinguish weak pressure, wrong physical input, acquisition noise, or signal
-present elsewhere in the recording. Confirm wiring and review independently
-identified breaths before interpreting any candidate latency. Neural coupling,
+This reduces concern that resampling alone created the observed signal. The confirmed
+sensor/amplifier model narrows the hardware question, but DAT metadata do not establish
+that ADC-00 receives the signal with the expected polarity, nor that its current
+waveform has usable breath SNR. Review independently identified breaths
+before interpreting any candidate latency. Neural coupling,
 respiratory neural locking, swallowing and odor arrival remain unresolved.
