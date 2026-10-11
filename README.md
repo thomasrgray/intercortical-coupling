@@ -293,3 +293,11 @@ execution, **not completed biological validation**: mapping/histology, exclusion
 rationale, CAR sensitivity and artifact propagation still need review. See
 [raw processing](docs/raw_processing.md), [validation](docs/validation.md),
 [comparison details](docs/power_comparison.md) and the [continuation prompt](docs/continue_prompt.md).
+
+## Delivery and respiration audit
+
+`coupling-respiration-qc` now audits ADC/DIN integrity, candidate pressure phases,
+spectral quality and TTL/phase alignment in one session. Default polarity is
+unknown, and automatic detections are not certified breaths.
+See [copy-paste commands, methods and TG22 signal-quality concern](docs/respiration_validation.md).
+Neural respiratory realignment and pPC spike reliability remain future work.

@@ -35,3 +35,15 @@ but does not complete biological validation. Histological mapping, exclusions,
 reference sensitivity and filter artifact spreading remain to be reviewed.
 The README includes executable run/QC/comparison examples and primary references;
 the cited physiological studies do not prescribe our provisional QC thresholds.
+
+## Respiration audit increment
+
+Four additional tests cover known phase timing/rates, absent or censored candidates,
+unsigned chunked ADC resampling, event identity, unknown polarity/manual review
+gates, sign inversion, source preservation and length/overwrite rejection.
+All 17 tests pass. A full uploaded TG22 ADC/DIN/header/time run generated the
+audit figure (visually inspected): 180 candidate-containing trials, zero approved
+physiological timings. Its broadly flat spectrum and rapid candidate rates raise
+a signal-quality/ADC-assignment concern. No detector accuracy against manually
+annotated biological breaths, polarity, swallow timing or neural respiratory
+alignment has been validated. See respiration_validation.md.
