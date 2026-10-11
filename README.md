@@ -297,8 +297,9 @@ rationale, CAR sensitivity and artifact propagation still need review. See
 ## Delivery and respiration audit
 
 `coupling-respiration-qc` now audits ADC/DIN integrity, candidate pressure phases,
-spectral quality and TTL/phase alignment in one session. Default polarity is
-unknown, and automatic detections are not certified breaths.
+spectral quality and TTL/phase alignment in one session. Polarity defaults to unknown; if the session used the same Honeywell 24PCAFA6G / Grass P55
+differential wiring as Maier et al. (2012), positive-going inspiration is the
+published polarity convention. Automatic detections still require waveform review.
 See [copy-paste commands, methods and TG22 signal-quality concern](docs/respiration_validation.md).
 Neural respiratory realignment and pPC spike reliability remain future work.
 
