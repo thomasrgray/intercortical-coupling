@@ -57,3 +57,12 @@ Pre/post curves are normalized power, not absolute PSD, and are labeled accordin
 n_channels at each bin, named coordinates, animal/session IDs and settings.
 `provenance.json`: source SHA256, settings, reference/filter declaration and
 accepted/valid trial counts per electrode/frequency. Archive these with plots.
+
+## Figure 6 additions
+
+`coupling-lfp-figure` requires unique original `event_id` (event axis) in the
+cleaned archive. Preparation also saves `reference_frequency_hz` and channel ×
+frequency `unreferenced_psd` / `referenced_psd`, measured from identical accepted
+epochs. Missing reference diagnostics in older archives are explicitly marked
+unavailable; they are never reconstructed from already referenced voltages.
+See the [Figure 6 contract](../figures/fig06_lfp_coupling/README.md).
