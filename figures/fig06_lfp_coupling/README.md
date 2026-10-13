@@ -179,3 +179,23 @@ adequacy for real recordings from this example.
 No real-session Figure 6 result is claimed: the available uploaded inputs include
 two amplifier channels and derived power/pressure archives, but no cleaned LFP
 archive or full regional reference donor set for this workflow.
+
+## Batch processing
+
+Use [`coupling-batch`](../../docs/batch_sessions.md) for multiple raw session
+folders. Each session is checked against its own `.info`, CSV, RHD and binaries,
+then receives an independent A–D output directory and provenance.
+
+```mermaid
+flowchart TD
+    roots["Discover session folders"] --> manifest["Review manifest and animal IDs"]
+    manifest --> checks["Check metadata, maps, binary counts and timestamps"]
+    checks --> valid{"Session valid?"}
+    valid -->|No| blocked["Record blocking reasons; continue batch"]
+    valid -->|Yes| prepare["Prepare this session with its own mapping"]
+    prepare --> figure["Generate A–D and save diagnostics"]
+    prepare -->|Failure| failed["Save error and continue batch"]
+    figure --> summary["Per-session counts and batch summary"]
+    failed --> summary
+    blocked --> summary
+```

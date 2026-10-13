@@ -337,3 +337,10 @@ Run `coupling-lfp-figure CLEANED_NPZ OUTPUT_DIRECTORY` for QC, GC/PC power,
 magnitude-squared coherence and diagnostic-gated directional spectral Granger.
 See [Figure 6 instructions and processing flowchart](figures/fig06_lfp_coupling/README.md)
 for raw-session commands, matched-odor contrasts, outputs and interpretation limits.
+
+## Process multiple recording sessions
+
+`coupling-batch init ROOT MANIFEST.json` discovers sessions;
+`coupling-batch check MANIFEST.json REPORT_DIR` validates them;
+`coupling-batch run MANIFEST.json OUTPUT_DIR` prepares and generates Figure 6
+for every valid session. See [batch instructions and checks](docs/batch_sessions.md).

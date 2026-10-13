@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "defaults": {
+    "reference_method": "mean_car",
+    "notch_60hz": true,
+    "max_channels": 5,
+    "min_trials": 5,
+    "orders": [2, 5, 10, 15, 20],
+    "matched_pairs": [["BA", "oBA"], ["IA", "oIA"]]
+  },
+  "sessions": [
+    {
+      "path": "/media/thomas/Data/TG22/Feb2_OrthoRetro_TG22_260202_170014",
+      "session_id": "Feb2_OrthoRetro_TG22_260202_170014",
+      "animal_id": "TG22"
+    }
+  ]
+}
