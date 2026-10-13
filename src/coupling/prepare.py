@@ -6,7 +6,7 @@ import math
 from pathlib import Path
 import subprocess
 import numpy as np
-from scipy.signal import resample_poly, butter, sosfiltfilt, iirnotch, filtfilt
+from scipy.signal import resample_poly, butter, sosfiltfilt, iirnotch, filtfilt, welch
 from .events import sample_rate, read_binary, inventory, select_six, write_csv
 from .qc import metrics, peer_flags
 
@@ -192,11 +192,25 @@ def prepare(folder,config_path,output):
     plot_qc(out,rows,dins,selected,trials,good,good_trial)
     if not all(any(good[c] and channels[c]['region']==region for c in range(len(channels))) for region in ('GC','PC')):
         raise ValueError(f'No accepted channels in a region. Inspect {out}/channel_qc.csv; no cleaned archive written.')
+    # Matched accepted epochs: measured reference effect, after identical filtering.
+    # Channel-wise accumulation avoids another full trial-array copy.
+    before_psd=np.full((len(channels),501),np.nan)
+    after_psd=np.full_like(before_psd,np.nan)
+    for c in np.flatnonzero(good):
+        before=[];after=[]
+        for j in np.flatnonzero(good_trial[c]):
+            k=events[j]['center_lfp_sample']
+            freq,p=welch(continuous[c,k-2000:k+5000],fs=1000,nperseg=1000)
+            before.append(p)
+            _,p=welch(trials[c,j],fs=1000,nperseg=1000);after.append(p)
+        if before:
+            before_psd[c]=np.mean(before,axis=0);after_psd[c]=np.mean(after,axis=0)
     np.savez_compressed(out/'cleaned_lfp.npz',lfp_uv=trials,time_s=np.arange(-2000,5000)/1000,
         stimulus=np.array([e['stimulus'] for e in events]),event_id=np.arange(len(events)),
         electrode_id=np.array([c['electrode_id'] for c in channels]),region=np.array([c['region'] for c in channels]),
         good_channel=good,good_trial=good_trial,session_id=config['session_id'],animal_id=config['animal_id'],
-        provenance_json=json.dumps(provenance))
+        provenance_json=json.dumps(provenance),reference_frequency_hz=np.arange(501),
+        unreferenced_psd=before_psd,referenced_psd=after_psd)
     return out/'cleaned_lfp.npz'
 
 

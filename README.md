@@ -330,3 +330,10 @@ subfolder named exactly `LFPs matched to brathing`. Unknown polarity or unreview
 breathing stays prominently provisional. See [method, commands and limitations](docs/respiration_lfp.md),
 including Maier's upward-zero-crossing definition and the separate retro expiration
 hypothesis. This optional extension does not establish measured odor arrival.
+
+## LFP Figure 6: A–D session workflow
+
+Run `coupling-lfp-figure CLEANED_NPZ OUTPUT_DIRECTORY` for QC, GC/PC power,
+magnitude-squared coherence and diagnostic-gated directional spectral Granger.
+See [Figure 6 instructions and processing flowchart](figures/fig06_lfp_coupling/README.md)
+for raw-session commands, matched-odor contrasts, outputs and interpretation limits.
