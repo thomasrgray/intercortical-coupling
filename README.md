@@ -8,8 +8,9 @@ No legacy scripts or recordings are changed. No study outcomes are assumed.
 
 1. Read `docs/figure_plan.md` and the panel contracts in `figures/`.
 2. Read `docs/data_contract.md` before preparing any session.
-3. Follow `docs/lfp_roadmap.md`: Fig 6A quality control, Fig 6B power context,
-   then Fig 6C coherence and Fig 6D Granger.
+3. Follow [`docs/mahmood_phase_coherence.md`](docs/mahmood_phase_coherence.md) for
+   the preferred Mahmood 2023 Figure 6 workflow and session-list template.
+   The previous A–D/Granger commands below are legacy workflows.
 
 ## Directory organization
 
@@ -20,7 +21,7 @@ No legacy scripts or recordings are changed. No study outcomes are assumed.
 | `figures/fig03_pc_reliability/` | PC response fractions, latency, locking, split-half |
 | `figures/fig04_pc_route_dynamics/` | Matched odors, temporal shifts, population dynamics |
 | `figures/fig05_gc_dynamics/` | GC responses and three-phase hypothesis |
-| `figures/fig06_lfp_coupling/` | QC, power, coherence, directional analyses — FIRST |
+| `figures/fig06_lfp_coupling/` | Mahmood 2023 phase coherence — FIRST |
 | `figures/fig07_transition_coupling/` | Coupling of inferred population transitions |
 | `figures/fig08_spike_coupling/` | Noise correlations, cross-correlations, Poisson GLMs |
 | `src/coupling/` | Shared tested computations |
@@ -33,7 +34,12 @@ No legacy scripts or recordings are changed. No study outcomes are assumed.
 See `docs/github_setup.md` for creating the private remote repository.
 
 
-## Copy-paste: process one complete session
+## Legacy raw preparation and A–D analysis
+
+For paper-based phase figures use `coupling-phase-figure`; see the guide above.
+These older commands remain available to prepare inputs/reproduce existing runs.
+
+### Copy-paste: process one complete session
 
 Use the PyCharm terminal from the repository root, with the project's Python
 interpreter active (Python 3.10+). PRs #1 and #2 are merged into `master`.

@@ -1,3 +1,6 @@
+> **Figure 6 update:** use [the Mahmood 2023 phase-coherence workflow](mahmood_phase_coherence.md).
+> The A–D/Granger workflow described below remains available as legacy analysis.
+
 Current implementation: see `raw_processing.md`. Remaining steps below describe scientific validation and future coupling analyses.
 
 # LFP build order and acceptance gates

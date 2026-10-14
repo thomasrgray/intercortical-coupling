@@ -1,3 +1,6 @@
+> **Figure 6 update:** use [the Mahmood 2023 phase-coherence workflow](mahmood_phase_coherence.md).
+> The A–D/Granger workflow described below remains available as legacy analysis.
+
 # Figure-first plan
 
 The manuscript outline defines questions, not results. Eight provisional figure
