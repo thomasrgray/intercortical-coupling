@@ -1,0 +1,421 @@
+{
+  "session_id": "Feb3_OrthoRetro_TG22_260203_142754",
+  "animal_id": "TG22",
+  "raw_fs_hz": 30000,
+  "lfp_fs_hz": 1000,
+  "stimulus_by_din": {
+    "0": "BA",
+    "1": "S",
+    "2": "oIA",
+    "3": "IA",
+    "4": "oBA",
+    "5": "BK"
+  },
+  "route_by_stimulus": {
+    "BA": "retro",
+    "IA": "retro",
+    "S": "retro",
+    "oBA": "ortho",
+    "oIA": "ortho",
+    "BK": "ortho"
+  },
+  "matched_pairs": [
+    [
+      "BA",
+      "oBA"
+    ],
+    [
+      "IA",
+      "oIA"
+    ]
+  ],
+  "reference_method": "mean_car",
+  "status": "Explicit example mapping: verify before each session",
+  "notch_60hz": true,
+  "channels": [
+    {
+      "filename": "amp-C-000.dat",
+      "electrode_id": 0,
+      "region": "GC",
+      "reference_group": "GC"
+    },
+    {
+      "filename": "amp-C-001.dat",
+      "electrode_id": 1,
+      "region": "GC",
+      "reference_group": "GC"
+    },
+    {
+      "filename": "amp-C-002.dat",
+      "electrode_id": 2,
+      "region": "GC",
+      "reference_group": "GC"
+    },
+    {
+      "filename": "amp-C-003.dat",
+      "electrode_id": 3,
+      "region": "GC",
+      "reference_group": "GC"
+    },
+    {
+      "filename": "amp-C-004.dat",
+      "electrode_id": 4,
+      "region": "GC",
+      "reference_group": "GC"
+    },
+    {
+      "filename": "amp-C-005.dat",
+      "electrode_id": 5,
+      "region": "GC",
+      "reference_group": "GC"
+    },
+    {
+      "filename": "amp-C-006.dat",
+      "electrode_id": 6,
+      "region": "GC",
+      "reference_group": "GC"
+    },
+    {
+      "filename": "amp-C-007.dat",
+      "electrode_id": 7,
+      "region": "GC",
+      "reference_group": "GC"
+    },
+    {
+      "filename": "amp-C-008.dat",
+      "electrode_id": 8,
+      "region": "GC",
+      "reference_group": "GC"
+    },
+    {
+      "filename": "amp-C-009.dat",
+      "electrode_id": 9,
+      "region": "GC",
+      "reference_group": "GC"
+    },
+    {
+      "filename": "amp-C-010.dat",
+      "electrode_id": 10,
+      "region": "GC",
+      "reference_group": "GC"
+    },
+    {
+      "filename": "amp-C-011.dat",
+      "electrode_id": 11,
+      "region": "GC",
+      "reference_group": "GC"
+    },
+    {
+      "filename": "amp-C-012.dat",
+      "electrode_id": 12,
+      "region": "GC",
+      "reference_group": "GC"
+    },
+    {
+      "filename": "amp-C-013.dat",
+      "electrode_id": 13,
+      "region": "GC",
+      "reference_group": "GC"
+    },
+    {
+      "filename": "amp-C-014.dat",
+      "electrode_id": 14,
+      "region": "GC",
+      "reference_group": "GC"
+    },
+    {
+      "filename": "amp-C-015.dat",
+      "electrode_id": 15,
+      "region": "GC",
+      "reference_group": "GC"
+    },
+    {
+      "filename": "amp-C-016.dat",
+      "electrode_id": 16,
+      "region": "GC",
+      "reference_group": "GC"
+    },
+    {
+      "filename": "amp-C-017.dat",
+      "electrode_id": 17,
+      "region": "GC",
+      "reference_group": "GC"
+    },
+    {
+      "filename": "amp-C-018.dat",
+      "electrode_id": 18,
+      "region": "GC",
+      "reference_group": "GC"
+    },
+    {
+      "filename": "amp-C-019.dat",
+      "electrode_id": 19,
+      "region": "GC",
+      "reference_group": "GC"
+    },
+    {
+      "filename": "amp-C-020.dat",
+      "electrode_id": 20,
+      "region": "GC",
+      "reference_group": "GC"
+    },
+    {
+      "filename": "amp-C-021.dat",
+      "electrode_id": 21,
+      "region": "GC",
+      "reference_group": "GC"
+    },
+    {
+      "filename": "amp-C-022.dat",
+      "electrode_id": 22,
+      "region": "GC",
+      "reference_group": "GC"
+    },
+    {
+      "filename": "amp-C-023.dat",
+      "electrode_id": 23,
+      "region": "GC",
+      "reference_group": "GC"
+    },
+    {
+      "filename": "amp-C-024.dat",
+      "electrode_id": 24,
+      "region": "GC",
+      "reference_group": "GC"
+    },
+    {
+      "filename": "amp-C-025.dat",
+      "electrode_id": 25,
+      "region": "GC",
+      "reference_group": "GC"
+    },
+    {
+      "filename": "amp-C-026.dat",
+      "electrode_id": 26,
+      "region": "GC",
+      "reference_group": "GC"
+    },
+    {
+      "filename": "amp-C-027.dat",
+      "electrode_id": 27,
+      "region": "GC",
+      "reference_group": "GC"
+    },
+    {
+      "filename": "amp-C-028.dat",
+      "electrode_id": 28,
+      "region": "GC",
+      "reference_group": "GC"
+    },
+    {
+      "filename": "amp-C-029.dat",
+      "electrode_id": 29,
+      "region": "GC",
+      "reference_group": "GC"
+    },
+    {
+      "filename": "amp-C-030.dat",
+      "electrode_id": 30,
+      "region": "GC",
+      "reference_group": "GC"
+    },
+    {
+      "filename": "amp-C-031.dat",
+      "electrode_id": 31,
+      "region": "GC",
+      "reference_group": "GC"
+    },
+    {
+      "filename": "amp-C-032.dat",
+      "electrode_id": 32,
+      "region": "PC",
+      "reference_group": "PC"
+    },
+    {
+      "filename": "amp-C-033.dat",
+      "electrode_id": 33,
+      "region": "PC",
+      "reference_group": "PC"
+    },
+    {
+      "filename": "amp-C-034.dat",
+      "electrode_id": 34,
+      "region": "PC",
+      "reference_group": "PC"
+    },
+    {
+      "filename": "amp-C-035.dat",
+      "electrode_id": 35,
+      "region": "PC",
+      "reference_group": "PC"
+    },
+    {
+      "filename": "amp-C-036.dat",
+      "electrode_id": 36,
+      "region": "PC",
+      "reference_group": "PC"
+    },
+    {
+      "filename": "amp-C-037.dat",
+      "electrode_id": 37,
+      "region": "PC",
+      "reference_group": "PC"
+    },
+    {
+      "filename": "amp-C-038.dat",
+      "electrode_id": 38,
+      "region": "PC",
+      "reference_group": "PC"
+    },
+    {
+      "filename": "amp-C-039.dat",
+      "electrode_id": 39,
+      "region": "PC",
+      "reference_group": "PC"
+    },
+    {
+      "filename": "amp-C-040.dat",
+      "electrode_id": 40,
+      "region": "PC",
+      "reference_group": "PC"
+    },
+    {
+      "filename": "amp-C-041.dat",
+      "electrode_id": 41,
+      "region": "PC",
+      "reference_group": "PC"
+    },
+    {
+      "filename": "amp-C-042.dat",
+      "electrode_id": 42,
+      "region": "PC",
+      "reference_group": "PC"
+    },
+    {
+      "filename": "amp-C-043.dat",
+      "electrode_id": 43,
+      "region": "PC",
+      "reference_group": "PC"
+    },
+    {
+      "filename": "amp-C-044.dat",
+      "electrode_id": 44,
+      "region": "PC",
+      "reference_group": "PC"
+    },
+    {
+      "filename": "amp-C-045.dat",
+      "electrode_id": 45,
+      "region": "PC",
+      "reference_group": "PC"
+    },
+    {
+      "filename": "amp-C-046.dat",
+      "electrode_id": 46,
+      "region": "PC",
+      "reference_group": "PC"
+    },
+    {
+      "filename": "amp-C-047.dat",
+      "electrode_id": 47,
+      "region": "PC",
+      "reference_group": "PC"
+    },
+    {
+      "filename": "amp-C-048.dat",
+      "electrode_id": 48,
+      "region": "PC",
+      "reference_group": "PC"
+    },
+    {
+      "filename": "amp-C-049.dat",
+      "electrode_id": 49,
+      "region": "PC",
+      "reference_group": "PC"
+    },
+    {
+      "filename": "amp-C-050.dat",
+      "electrode_id": 50,
+      "region": "PC",
+      "reference_group": "PC"
+    },
+    {
+      "filename": "amp-C-051.dat",
+      "electrode_id": 51,
+      "region": "PC",
+      "reference_group": "PC"
+    },
+    {
+      "filename": "amp-C-052.dat",
+      "electrode_id": 52,
+      "region": "PC",
+      "reference_group": "PC"
+    },
+    {
+      "filename": "amp-C-053.dat",
+      "electrode_id": 53,
+      "region": "PC",
+      "reference_group": "PC"
+    },
+    {
+      "filename": "amp-C-054.dat",
+      "electrode_id": 54,
+      "region": "PC",
+      "reference_group": "PC"
+    },
+    {
+      "filename": "amp-C-055.dat",
+      "electrode_id": 55,
+      "region": "PC",
+      "reference_group": "PC"
+    },
+    {
+      "filename": "amp-C-056.dat",
+      "electrode_id": 56,
+      "region": "PC",
+      "reference_group": "PC"
+    },
+    {
+      "filename": "amp-C-057.dat",
+      "electrode_id": 57,
+      "region": "PC",
+      "reference_group": "PC"
+    },
+    {
+      "filename": "amp-C-058.dat",
+      "electrode_id": 58,
+      "region": "PC",
+      "reference_group": "PC"
+    },
+    {
+      "filename": "amp-C-059.dat",
+      "electrode_id": 59,
+      "region": "PC",
+      "reference_group": "PC"
+    },
+    {
+      "filename": "amp-C-060.dat",
+      "electrode_id": 60,
+      "region": "PC",
+      "reference_group": "PC"
+    },
+    {
+      "filename": "amp-C-061.dat",
+      "electrode_id": 61,
+      "region": "PC",
+      "reference_group": "PC"
+    },
+    {
+      "filename": "amp-C-062.dat",
+      "electrode_id": 62,
+      "region": "PC",
+      "reference_group": "PC"
+    },
+    {
+      "filename": "amp-C-063.dat",
+      "electrode_id": 63,
+      "region": "PC",
+      "reference_group": "PC"
+    }
+  ]
+}
