@@ -1,3 +1,6 @@
+> **Figure 6 update:** use [the Mahmood 2023 phase-coherence workflow](mahmood_phase_coherence.md).
+> The A–D/Granger workflow described below remains available as legacy analysis.
+
 # Multiple-session LFP processing
 
 `coupling-batch` discovers sessions, validates each folder against its own metadata,
