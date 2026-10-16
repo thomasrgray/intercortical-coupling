@@ -10,6 +10,8 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import sys
+import time
 
 import numpy as np
 from scipy.signal import detrend, stft
@@ -22,6 +24,40 @@ BANDS = {'repository': [('Theta', 3, 8), ('Alpha', 8, 13), ('Beta', 13, 30),
                         ('Low gamma', 30, 70), ('High gamma', 70, 100)],
          'paper': [('Delta', 1, 4), ('Theta', 4, 8), ('Mu', 8, 13),
                    ('Beta', 12, 30), ('Gamma', 30, 100)]}
+
+
+def progress(items, label):
+    """Show bounded-rate progress on stderr without an extra dependency."""
+    total = len(items)
+    started = last = time.monotonic()
+    terminal = sys.stderr.isatty()
+
+    def report(done):
+        elapsed = time.monotonic() - started
+        eta = elapsed / done * (total - done) if done else None
+        filled = int(20 * done / total) if total else 20
+        bar = '#' * filled + '-' * (20 - filled)
+        remaining = f'{eta:.0f}s' if eta is not None else '?'
+        message = (f'{label} [{bar}] {done}/{total} '
+                   f'elapsed {elapsed:.0f}s | ETA {remaining}')
+        print(('\\r' if terminal else '') + message,
+              end='' if terminal else '\\n', file=sys.stderr, flush=True)
+
+    report(0)
+    try:
+        for done, item in enumerate(items, 1):
+            yield item
+            now = time.monotonic()
+            if done == total or now - last >= (1 if terminal else 30):
+                report(done)
+                last = now
+    finally:
+        if terminal:
+            print(file=sys.stderr, flush=True)
+
+
+def stage(message):
+    print(message, flush=True)
 
 
 def write_json(path, value):
@@ -184,9 +220,9 @@ def transform(data, profile, seed=0, by_stimulus=False):
         return z[:, fi][:, :, ti], f[fi], t[ti]
 
     selected, powers = [], {}
-    for group in data['groups']:
+    for region, group in zip(('GC', 'PC'), data['groups']):
         mean = None
-        for index in group:
+        for index in progress(group, f'{region}: channel STFT pass 1/2'):
             z, f, t = channel_stft(index)
             p = np.angle(z)
             if mean is None:
@@ -194,7 +230,7 @@ def transform(data, profile, seed=0, by_stimulus=False):
             mean += p / len(group)
             powers[int(index)] = np.mean(abs(z)**2, axis=0)
         losses = []
-        for index in group:
+        for index in progress(group, f'{region}: channel STFT pass 2/2'):
             z, _, _ = channel_stft(index)
             error = np.angle(z)-mean
             losses.append(np.sum(abs(error) if profile == 'repository' else error**2))
@@ -204,7 +240,7 @@ def transform(data, profile, seed=0, by_stimulus=False):
     used = sorted(set(selected) | set(intra.ravel().tolist()))
     phases = []
     condition_powers = {str(label): [] for label in np.unique(data['stimulus'])} if by_stimulus else {}
-    for index in used:
+    for index in progress(used, 'Selected/control channel STFT'):
         z, f, t = channel_stft(index)
         phases.append(np.angle(z))
         for label in condition_powers:
@@ -259,7 +295,7 @@ def calculate(phase, groups, f, t, profile, n_boot, seed, selected=None, intra=N
     shuffle = np.empty_like(boot)
     within = np.empty((n_boot, 2, len(bands), len(t)))
     n = len(a)
-    for k in range(n_boot):
+    for k in progress(range(n_boot), 'Bootstrap + shuffle + intra-region'):
         idx = rng.integers(n, size=n)
         value = np.abs(diff[idx].mean(axis=0))
         boot[k] = [value[mask].mean(axis=0) for mask in freq_inds]
@@ -395,6 +431,7 @@ def analyze_conditions(phase, powers, labels, event_ids, ids, selected, intra,
         if mask.sum() < 3:
             metadata[label] = dict(status='skipped', count=int(mask.sum()), reason='fewer than 3 accepted events')
             continue
+        stage(f'Stimulus {label}: {int(mask.sum())} accepted trials')
         condition_seed = int.from_bytes(hashlib.sha256(f'{seed}:{label}'.encode()).digest()[:8], 'little')
         result = calculate(phase[mask], None, f, t, profile, n_boot, condition_seed, selected, intra)
         result.update(accepted_event_id=event_ids[mask], stimulus=labels[mask])
@@ -420,7 +457,9 @@ def analyze_conditions(phase, powers, labels, event_ids, ids, selected, intra,
                       selected_electrode_id=ids[selected], intra_electrode_id=ids[intra])
         np.savez_compressed(target/'phase_coherence.npz', **result)
         description = label + ('; equal odor mean' if label in ('ortho', 'retro') else '')
+        stage(f'Exporting figures: {label}')
         plot_session(result, powers[label], target, title+'; '+description, xlabel)
+    stage('Exporting ortho/retro comparisons')
     plot_comparisons(results, folder, title, xlabel)
     write_json(folder/'conditions.json', metadata)
     return results
@@ -499,7 +538,8 @@ def run(list_path, config_path, output, check=False, profile='repository', n_boo
     (output/'fin_inter_list.txt').write_text(''.join(row['session']+'\n' for row in manifest))
     statuses, summaries = [], []
     condition_summaries = {}
-    for row in manifest:
+    for session_number, row in enumerate(manifest, 1):
+        stage(f'[{session_number}/{len(manifest)}] {Path(row["session"]).name}: loading and validating input')
         session, spec = Path(row['session']), row['spec']
         status = dict(session=str(session), output_key=row['output_key'], animal_id=spec.get('animal_id'), status='checking')
         try:
@@ -511,12 +551,14 @@ def run(list_path, config_path, output, check=False, profile='repository', n_boo
                 folder.mkdir()
                 session_seed = int.from_bytes(hashlib.sha256((str(seed)+str(session)).encode()).digest()[:8], 'little')
                 phase, powers, f, t, used, selected, intra, condition_powers = transform(data, profile, session_seed, by_stimulus=True)
+                stage('All stimuli pooled: estimating coherence and controls')
                 result = calculate(phase, None, f, t, profile, n_boot, session_seed, selected, intra)
                 ids = data['electrode_id'][data['channels']][used]
                 result.update(trial_mean_stft_power=powers, phase_channel_electrode_id=ids, selected_electrode_id=ids[result['selected_indices']], intra_electrode_id=ids[result['intra_indices']],
                               accepted_event_id=data['event_id'][data['good']], stimulus=data['stimulus'][data['good']])
                 np.savez_compressed(folder/'phase_coherence.npz', **result)
                 xlabel = alignment_label(data['provenance'])
+                stage('Exporting pooled figures')
                 plot_session(result, powers, folder, session.name+'; all stimuli pooled', xlabel)
                 conditions = analyze_conditions(phase, condition_powers, data['stimulus'][data['good']],
                     data['event_id'][data['good']], ids, selected, intra, f, t, profile,
@@ -525,6 +567,7 @@ def run(list_path, config_path, output, check=False, profile='repository', n_boo
                     revision = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=Path(__file__).parent, text=True, stderr=subprocess.DEVNULL).strip()
                 except (OSError, subprocess.CalledProcessError):
                     revision = 'unavailable'
+                stage('Writing provenance and hashing input')
                 write_json(folder/'provenance.json', dict(source=str(data['source']), input_sha256=digest_file(data['source']),
                     session=str(session), animal_id=spec.get('animal_id'), profile=profile, bootstrap_samples=n_boot, seed=seed, session_seed=session_seed,
                     reference_sha=REFERENCE_SHA, implementation_revision=revision,
@@ -545,6 +588,7 @@ def run(list_path, config_path, output, check=False, profile='repository', n_boo
         write_json(output/'status.json', statuses)
         print(f"{session.name}: {status['status']} {status.get('error', '')}", flush=True)
     if not check:
+        stage('Aggregating completed sessions')
         aggregate(summaries, output)
         for label, rows in condition_summaries.items():
             key = re.sub(r'[^A-Za-z0-9_-]', '_', label)+'-'+hashlib.sha256(label.encode()).hexdigest()[:8]
