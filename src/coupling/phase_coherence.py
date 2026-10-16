@@ -284,7 +284,7 @@ def calculate(phase, groups, f, t, profile, n_boot, seed, selected=None, intra=N
 
 def save_figure(fig, stem):
     fig.tight_layout()
-    for ext in ('png', 'pdf'):
+    for ext in ('png', 'svg'):
         fig.savefig(stem.with_suffix('.'+ext), dpi=160)
     plt.close(fig)
 
@@ -320,7 +320,7 @@ def plot_power(result, powers, stem, title, xlabel):
         sd = power.std(axis=-1, keepdims=True)
         z = np.divide(power-power.mean(axis=-1, keepdims=True), sd,
                       out=np.zeros_like(power), where=sd>0)
-        image = ax.pcolormesh(t, f, z, shading='auto', cmap='RdBu_r', vmin=-3, vmax=3)
+        image = ax.pcolormesh(t, f, z, shading='auto', cmap='RdBu_r', vmin=-3, vmax=3, rasterized=True)
         ax.axvline(0, color='black', lw=.7)
         ax.set(title=region, xlabel=xlabel, ylabel='Frequency (Hz)')
         fig.colorbar(image, ax=ax, label='Temporal z-score of trial-mean STFT power')
@@ -467,7 +467,7 @@ def aggregate(summaries, out, condition='all stimuli pooled'):
         t = first['time_s']
         dt = np.median(np.diff(t))
         edges = np.r_[t-dt/2, t[-1]+dt/2]
-        mesh = axes[0, i].pcolormesh(edges, np.arange(len(summaries)+1)-.5, dev[:, i], shading='flat', cmap='coolwarm', vmin=-1, vmax=1)
+        mesh = axes[0, i].pcolormesh(edges, np.arange(len(summaries)+1)-.5, dev[:, i], shading='flat', cmap='coolwarm', vmin=-1, vmax=1, rasterized=True)
         axes[0, i].set_yticks(np.arange(len(summaries)), labels=np.arange(1,len(summaries)+1))
         if i == len(first['band'])-1:
             bar = fig.colorbar(mesh, ax=axes[0, i], ticks=[-1,0,1])
