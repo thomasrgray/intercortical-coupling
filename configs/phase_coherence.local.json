@@ -1,0 +1,24 @@
+{
+  "defaults": {
+    "region_keys": {
+      "GC": "GC",
+      "PC": "PC"
+    },
+    "fs_hz": 1000,
+    "onset_s": 2.0,
+    "stimulus_by_din": {
+      "0": "BA",
+      "1": "S",
+      "2": "oIA",
+      "3": "IA",
+      "4": "oBA",
+      "5": "BK"
+    }
+  },
+  "sessions": {
+    "/media/thomas/Data/TG22/Feb2_OrthoRetro_TG22_260202_170014": {
+      "animal_id": "TG22",
+      "input": "/home/thomas/intercortical-coupling/results/Feb2_OrthoRetro_TG22_260202_170014_prep_01/cleaned_lfp.npz"
+    }
+  }
+}
