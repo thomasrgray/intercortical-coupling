@@ -189,17 +189,17 @@ that it is truly prestimulus for realigned epochs.
   eligible physical IDs, animal labels and output locations.
 - Each session: `phase_coherence.npz` (frequency-time observed coherence, band
   bootstrap/shuffle/intra draws, baseline limits/deviations, selected physical
-  IDs, event/stimulus labels); PNG/PDF phase curves and descriptive power context;
+  IDs, event/stimulus labels); PNG/SVG phase curves and descriptive power context;
   `provenance.json` (input SHA256, source paths, preprocessing declaration,
   reference commit, implementation/module hash, seed and settings).
 - `conditions.json`: stimulus/route counts, skipped conditions, route membership,
   weighting, per-condition seeds and relative output directories.
 - `conditions/<label>-<hash>/`: separate coherence NPZ, band figure and GC/PC power
-  context PNG/PDF for each individual stimulus and each available route.
-- `ortho_vs_retro.png/.pdf`: matched-odor and combined-route comparisons across bands;
+  context PNG/SVG for each individual stimulus and each available route.
+- `ortho_vs_retro.png/.svg`: matched-odor and combined-route comparisons across bands;
   `ortho_vs_retro.npz` stores ortho-minus-retro bootstrap draws by band and time.
 - Run-level `conditions/<label>-<hash>/`: corresponding all-session aggregates.
-- `aggregate.npz` and `all_sessions.png/.pdf`: each completed session's band curves,
+- `aggregate.npz` and `all_sessions.png/.svg`: each completed session's band curves,
   baseline-deviation map and fraction of sessions deviating. No silent resampling
   occurs: mismatched time grids stop aggregate generation while preserving
   individual outputs. Failed sessions remain recorded and are excluded.
@@ -237,3 +237,10 @@ power/magnitude-squared-coherence/Granger behavior for reproducibility. They do
 not invoke this paper workflow. Use `coupling-phase-figure` for the new Figure 6.
 Old results are not relabeled or overwritten. The former figure contract is
 archived at `figures/fig06_lfp_coupling/legacy_A_D.md`.
+
+### Figure export formats
+
+Phase-coherence figures are saved as PNG and SVG only. Dense power and aggregate
+heatmaps are embedded as raster images at the export resolution (160 dpi) inside
+SVG files, keeping axes and curves as vectors while avoiding per-cell vector
+export overhead. Existing PDF files from older runs are not removed.
