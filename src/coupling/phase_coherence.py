@@ -123,7 +123,8 @@ def load_h5(source, session, spec):
                 good_trial=np.ones(x.shape[:2], dtype=bool),
                 provenance={'declared_preprocessing': provenance, 'info_path': str(info_path),
                             'info_sha256': digest_file(info_path), 'eligible_electrode_ids': eligible,
-                            'fs_hz': fs, 'onset_s': onset, 'stimulus_by_din': dins})
+                            'fs_hz': fs, 'onset_s': onset, 'stimulus_by_din': dins,
+                            'event_alignment': spec.get('event_alignment', 'declared parsed-trial event')})
 
 
 def load_npz(source):
@@ -146,7 +147,7 @@ def load_input(session, spec):
     if len(t) < 500 or not np.allclose(np.diff(t), .001, atol=1e-9, rtol=0):
         raise ValueError('Require verified 1000 Hz LFPs; no implicit resampling')
     if t[0] > -1 or t[-1] < 2.25:
-        raise ValueError('Need at least -1 to +2.25 s relative to verified stimulus onset')
+        raise ValueError('Need at least -1 to +2.25 s relative to the declared alignment event')
     if len(np.unique(data['electrode_id'])) != len(data['electrode_id']):
         raise ValueError('Duplicate physical electrode IDs')
     channels = np.flatnonzero(data['good_channel'])
@@ -169,7 +170,7 @@ def load_input(session, spec):
     return data
 
 
-def transform(data, profile, seed=0):
+def transform(data, profile, seed=0, by_stimulus=False):
     """Two STFT passes select channels without retaining a full 64-channel phase tensor."""
     def channel_stft(index):
         channel = data['channels'][index]
@@ -202,13 +203,18 @@ def transform(data, profile, seed=0):
     intra = np.array([rng.choice(group, 2, replace=False) for group in data['groups']])
     used = sorted(set(selected) | set(intra.ravel().tolist()))
     phases = []
+    condition_powers = {str(label): [] for label in np.unique(data['stimulus'])} if by_stimulus else {}
     for index in used:
         z, f, t = channel_stft(index)
         phases.append(np.angle(z))
+        for label in condition_powers:
+            mask = data['stimulus'][data['good']] == label
+            condition_powers[label].append(np.mean(abs(z[mask])**2, axis=0))
     phase = np.stack(phases, axis=1)
     local_selected = [used.index(i) for i in selected]
     local_intra = np.array([[used.index(int(i)) for i in pair] for pair in intra])
-    return phase, np.stack([powers[i] for i in used]), f, t, np.array(used), local_selected, local_intra
+    result = (phase, np.stack([powers[i] for i in used]), f, t, np.array(used), local_selected, local_intra)
+    return result + ({k: np.stack(v) for k, v in condition_powers.items()},) if by_stimulus else result
 
 
 def select_channels(phase, groups, profile):
@@ -283,7 +289,7 @@ def save_figure(fig, stem):
     plt.close(fig)
 
 
-def plot_session(result, powers, folder, title):
+def plot_session(result, powers, folder, title, xlabel='Time from declared parsed-trial event (s)'):
     t, f = result['time_s'], result['frequency_hz']
     fig, axes = plt.subplots(len(result['band']), 1, figsize=(10, 12), sharex=True)
     for i, ax in enumerate(axes):
@@ -301,8 +307,13 @@ def plot_session(result, powers, folder, title):
         ax.set(ylabel=str(result['band'][i]), ylim=(0, 1))
     axes[0].legend(ncol=2, fontsize=8)
     axes[0].set_title(title+'\nPhase coherence; shading = ±3 bootstrap SD; gold = baseline deviation')
-    axes[-1].set_xlabel('Time from declared alignment event (s)')
+    axes[-1].set_xlabel(xlabel)
     save_figure(fig, folder/'phase_coherence')
+    plot_power(result, powers, folder/'power_context', title, xlabel)
+
+
+def plot_power(result, powers, stem, title, xlabel):
+    t, f = result['time_s'], result['frequency_hz']
     fig, axes = plt.subplots(1, 2, figsize=(12, 4), sharey=True)
     for ax, region, index in zip(axes, ('GC', 'PC'), result['selected_indices']):
         power = powers[index]
@@ -311,11 +322,108 @@ def plot_session(result, powers, folder, title):
                       out=np.zeros_like(power), where=sd>0)
         image = ax.pcolormesh(t, f, z, shading='auto', cmap='RdBu_r', vmin=-3, vmax=3)
         ax.axvline(0, color='black', lw=.7)
-        ax.set(title=region, xlabel='Time from declared alignment event (s)', ylabel='Frequency (Hz)')
+        ax.set(title=region, xlabel=xlabel, ylabel='Frequency (Hz)')
         fig.colorbar(image, ax=ax, label='Temporal z-score of trial-mean STFT power')
-    fig.suptitle(title+'; selected channels, pooled trials (descriptive power context)')
-    save_figure(fig, folder/'power_context')
+    fig.suptitle(title+'; fixed selected channels (descriptive power context)')
+    save_figure(fig, stem)
 
+
+
+def alignment_label(provenance):
+    event = str(provenance.get('event_alignment', 'declared parsed-trial event'))
+    if event.startswith('TTL first-high sample') or event == 'stimulus DIN onset':
+        event = 'stimulus DIN onset'
+    return f'Time from {event} (s)'
+
+
+def equal_odor_result(results):
+    """Average coherence magnitudes AFTER within-odor estimation, never pool phase vectors."""
+    first = results[0]
+    out = {k: first[k] for k in ('selected_indices', 'intra_indices', 'frequency_hz',
+                                'time_s', 'band', 'band_limits_hz')}
+    for key in ('coherence', 'bootstrap_band', 'shuffle_band', 'intra_band'):
+        out[key] = np.mean([r[key] for r in results], axis=0)
+    t = out['time_s']
+    baseline = (t > -.75) & (t < -.25)
+    out['baseline_bounds'] = np.stack([
+        np.percentile(out['bootstrap_band'][:, i, baseline], [2.5, 97.5])
+        for i in range(len(out['band']))])
+    out['deviation'] = np.stack([sustained_deviation(m, ci, t) for m, ci in
+        zip(out['bootstrap_band'].mean(axis=0), out['baseline_bounds'])])
+    return out
+
+
+def plot_comparisons(results, folder, title, xlabel):
+    comparisons = [('BA', 'oBA', 'BA'), ('IA', 'oIA', 'IA'),
+                   ('route', 'ortho', 'retro')]
+    available = [(name, a, b) for name, a, b in comparisons if a in results and b in results]
+    if not available:
+        return
+    first = results[available[0][1]]
+    t, bands = first['time_s'], first['band']
+    fig, axes = plt.subplots(len(bands), len(available), figsize=(6*len(available), 12),
+                             sharex=True, squeeze=False)
+    exports = dict(time_s=t, band=bands)
+    for col, (name, a, b) in enumerate(available):
+        ra, rb = results[a], results[b]
+        exports[name+'_ortho_minus_retro_bootstrap'] = ra['bootstrap_band']-rb['bootstrap_band']
+        for i, band in enumerate(bands):
+            ax = axes[i, col]
+            for r, label in ((ra, a), (rb, b)):
+                draws = r['bootstrap_band'][:, i]
+                lo, hi = np.percentile(draws, [2.5, 97.5], axis=0)
+                ax.plot(t, draws.mean(axis=0), label=label)
+                ax.fill_between(t, lo, hi, alpha=.18)
+            ax.axvline(0, color='black', lw=.7)
+            ax.set(ylabel=str(band), ylim=(0, 1))
+            if i == 0:
+                ax.set_title(f'{title}: {a} vs {b}')
+                ax.legend()
+            if i == len(bands)-1:
+                ax.set_xlabel(xlabel)
+    fig.suptitle('GC–PC phase coherence; pointwise 95% bootstrap intervals (descriptive)')
+    save_figure(fig, folder/'ortho_vs_retro')
+    np.savez_compressed(folder/'ortho_vs_retro.npz', **exports)
+
+
+def analyze_conditions(phase, powers, labels, event_ids, ids, selected, intra,
+                       f, t, profile, n_boot, seed, folder, title, xlabel):
+    results, metadata = {}, {}
+    for label in sorted(powers):
+        mask = labels == label
+        # Three accepted events is the same minimum used for the pooled input.
+        if mask.sum() < 3:
+            metadata[label] = dict(status='skipped', count=int(mask.sum()), reason='fewer than 3 accepted events')
+            continue
+        condition_seed = int.from_bytes(hashlib.sha256(f'{seed}:{label}'.encode()).digest()[:8], 'little')
+        result = calculate(phase[mask], None, f, t, profile, n_boot, condition_seed, selected, intra)
+        result.update(accepted_event_id=event_ids[mask], stimulus=labels[mask])
+        results[label] = result
+        metadata[label] = dict(status='completed', count=int(mask.sum()), seed=condition_seed)
+    for route, members in [('ortho', ['oBA', 'oIA']), ('retro', ['BA', 'IA'])]:
+        if all(label in results for label in members):
+            results[route] = equal_odor_result([results[label] for label in members])
+            mask = np.isin(labels, members)
+            results[route].update(accepted_event_id=event_ids[mask], stimulus=labels[mask])
+            powers[route] = np.mean([powers[label] for label in members], axis=0)
+            metadata[route] = dict(status='completed', members=members, weighting='equal odor means',
+                                   counts={label: int(np.sum(labels == label)) for label in members})
+        else:
+            metadata[route] = dict(status='skipped', members=members, reason='both odors require at least 3 accepted events')
+    for label, result in results.items():
+        # Hash prevents path traversal and collisions for arbitrary input labels.
+        key = re.sub(r'[^A-Za-z0-9_-]', '_', label)+'-'+hashlib.sha256(label.encode()).hexdigest()[:8]
+        target = folder/'conditions'/key
+        target.mkdir(parents=True)
+        metadata[label]['directory'] = str(target.relative_to(folder))
+        result.update(alignment_label=xlabel, trial_mean_stft_power=powers[label], phase_channel_electrode_id=ids,
+                      selected_electrode_id=ids[selected], intra_electrode_id=ids[intra])
+        np.savez_compressed(target/'phase_coherence.npz', **result)
+        description = label + ('; equal odor mean' if label in ('ortho', 'retro') else '')
+        plot_session(result, powers[label], target, title+'; '+description, xlabel)
+    plot_comparisons(results, folder, title, xlabel)
+    write_json(folder/'conditions.json', metadata)
+    return results
 
 def digest_file(path):
     digest = hashlib.sha256()
@@ -340,17 +448,20 @@ def resolve_manifest(list_path, config_path):
     return manifest
 
 
-def aggregate(summaries, out):
+def aggregate(summaries, out, condition='all stimuli pooled'):
     if not summaries:
         return
     first = summaries[0]
     for r in summaries[1:]:
+        if r.get('xlabel') != first.get('xlabel'):
+            raise ValueError('Session alignment labels differ; aggregate separately by alignment event')
         if r['deviation'].shape != first['deviation'].shape or not np.allclose(r['time_s'], first['time_s'], atol=1e-9, rtol=0):
             raise ValueError('Session time grids differ: per-session outputs saved; no invalid aggregate produced')
     dev = np.stack([r['deviation'] for r in summaries])
     means = np.stack([r['mean'] for r in summaries])
     np.savez_compressed(out/'aggregate.npz', deviation=dev, mean_coherence=means,
-                        session=np.array([r['session'] for r in summaries]), time_s=first['time_s'], band=first['band'])
+                        session=np.array([r['session'] for r in summaries]), time_s=first['time_s'], band=first['band'],
+                        condition=condition, alignment_label=first.get('xlabel', 'Time from alignment (s)'))
     fig, axes = plt.subplots(3, len(first['band']), figsize=(18, 9), squeeze=False)
     for i, name in enumerate(first['band']):
         t = first['time_s']
@@ -366,10 +477,10 @@ def aggregate(summaries, out):
         axes[1, i].set(ylabel='Fraction with baseline deviation', ylim=(-.03, 1.03))
         axes[2, i].plot(t, means[:, i].T, alpha=.3)
         axes[2, i].plot(t, means[:, i].mean(axis=0), color='black', lw=2)
-        axes[2, i].set(ylabel='Phase coherence', xlabel='Time from alignment (s)', ylim=(0, 1))
+        axes[2, i].set(ylabel='Phase coherence', xlabel=first.get('xlabel', 'Time from alignment (s)'), ylim=(0, 1))
         for ax in axes[:, i]:
             ax.axvline(0, color='black', lw=.6)
-    fig.suptitle('All completed sessions; equal session weighting, descriptive (not animal-level inference)')
+    fig.suptitle(condition+'; all completed sessions; equal session weighting, descriptive (not animal-level inference)')
     save_figure(fig, out/'all_sessions')
 
 
@@ -387,6 +498,7 @@ def run(list_path, config_path, output, check=False, profile='repository', n_boo
     # Export a plain absolute-path list accepted by the original scripts.
     (output/'fin_inter_list.txt').write_text(''.join(row['session']+'\n' for row in manifest))
     statuses, summaries = [], []
+    condition_summaries = {}
     for row in manifest:
         session, spec = Path(row['session']), row['spec']
         status = dict(session=str(session), output_key=row['output_key'], animal_id=spec.get('animal_id'), status='checking')
@@ -398,13 +510,17 @@ def run(list_path, config_path, output, check=False, profile='repository', n_boo
                 folder = output/row['output_key']
                 folder.mkdir()
                 session_seed = int.from_bytes(hashlib.sha256((str(seed)+str(session)).encode()).digest()[:8], 'little')
-                phase, powers, f, t, used, selected, intra = transform(data, profile, session_seed)
+                phase, powers, f, t, used, selected, intra, condition_powers = transform(data, profile, session_seed, by_stimulus=True)
                 result = calculate(phase, None, f, t, profile, n_boot, session_seed, selected, intra)
                 ids = data['electrode_id'][data['channels']][used]
                 result.update(trial_mean_stft_power=powers, phase_channel_electrode_id=ids, selected_electrode_id=ids[result['selected_indices']], intra_electrode_id=ids[result['intra_indices']],
                               accepted_event_id=data['event_id'][data['good']], stimulus=data['stimulus'][data['good']])
                 np.savez_compressed(folder/'phase_coherence.npz', **result)
-                plot_session(result, powers, folder, session.name)
+                xlabel = alignment_label(data['provenance'])
+                plot_session(result, powers, folder, session.name+'; all stimuli pooled', xlabel)
+                conditions = analyze_conditions(phase, condition_powers, data['stimulus'][data['good']],
+                    data['event_id'][data['good']], ids, selected, intra, f, t, profile,
+                    n_boot, session_seed, folder, session.name, xlabel)
                 try:
                     revision = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=Path(__file__).parent, text=True, stderr=subprocess.DEVNULL).strip()
                 except (OSError, subprocess.CalledProcessError):
@@ -415,10 +531,13 @@ def run(list_path, config_path, output, check=False, profile='repository', n_boo
                     source_module_sha256=digest_file(Path(__file__)), preprocessing=data['provenance'],
                     settings=dict(window_samples=500, overlap_samples=499 if profile=='repository' else 495,
                                   max_frequency_exclusive=100, detrend='linear', boundary='zeros', padded=True,
-                                  selection_time_s=[float(t[0]), float(t[-1])], pooling='all selected stimuli',
+                                  selection_time_s=[float(t[0]), float(t[-1])], pooling='legacy all-stimulus output plus separate stimuli; routes average within-odor coherence equally',
                                   qc='intersection across all eligible channels', bands=BANDS[profile]),
                     selected_electrode_id=result['selected_electrode_id'].tolist(), counts=data['counts']))
-                summaries.append(dict(session=str(session), deviation=result['deviation'], mean=result['bootstrap_band'].mean(axis=0), time_s=t, band=result['band']))
+                summaries.append(dict(session=str(session), deviation=result['deviation'], mean=result['bootstrap_band'].mean(axis=0), time_s=t, band=result['band'], xlabel=xlabel))
+                for label, r in conditions.items():
+                    condition_summaries.setdefault(label, []).append(dict(session=str(session),
+                        deviation=r['deviation'], mean=r['bootstrap_band'].mean(axis=0), time_s=t, band=r['band'], xlabel=xlabel))
                 status.update(status='completed', output=str(folder))
         except Exception as exc:
             status.update(status='failed', error=f'{type(exc).__name__}: {exc}')
@@ -427,6 +546,11 @@ def run(list_path, config_path, output, check=False, profile='repository', n_boo
         print(f"{session.name}: {status['status']} {status.get('error', '')}", flush=True)
     if not check:
         aggregate(summaries, output)
+        for label, rows in condition_summaries.items():
+            key = re.sub(r'[^A-Za-z0-9_-]', '_', label)+'-'+hashlib.sha256(label.encode()).hexdigest()[:8]
+            target = output/'conditions'/key
+            target.mkdir(parents=True)
+            aggregate(rows, target, condition=label)
     return statuses
 
 
