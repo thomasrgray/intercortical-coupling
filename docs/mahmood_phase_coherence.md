@@ -121,9 +121,21 @@ independent 1 Hz estimates. Near-epoch-edge estimates include padding. The two
 profiles intentionally retain the reference's arithmetic treatment of phase in
 channel selection rather than silently substituting circular statistics.
 
-All selected stimuli are pooled, including different modalities. This matches
-the reference's trial pooling; it is **not an ortho-versus-retro contrast**.
-Unequal trial counts weight conditions unequally. The command reports counts.
+The top-level session output retains all-stimulus pooling for comparison with
+older runs. New condition outputs estimate coherence independently for every
+stimulus. Route summaries average the two **within-odor coherence magnitudes**:
+orthonasal = (oBA + oIA)/2 and retronasal = (BA + IA)/2. Thus each odor has equal
+weight even after unequal QC retention. Phase vectors are not pooled across
+odors: opposite preferred phase lags should not cancel otherwise strong locking.
+Bootstrap and shuffle calculations run independently within each stimulus;
+route draws average those within-odor draws. S and BK enter only their own
+condition plots and the explicitly labeled legacy all-stimulus output.
+Conditions with fewer than three accepted events are skipped and reported in
+`conditions.json`; a route requires both members. Comparisons show oBA vs BA,
+oIA vs IA, and ortho vs retro across all profile bands. Pointwise bootstrap
+intervals and exported differences are descriptive, without multiple-comparison
+correction. PLV has finite-sample bias; unequal condition counts remain reported
+and require trial-count sensitivity analysis before inferential route claims.
 A representative channel is fixed per region for the whole analysis. At least
 two eligible channels per region are required for the intra-region controls.
 For NPZ input, events must pass QC on **all eligible channels** before channel
@@ -146,6 +158,28 @@ Bootstrap arrays are reduced to bands as they are generated, avoiding three
 resolved session path; moving a session changes its random stream. Numerical
 results need not match an unseeded historical run bit-for-bit.
 
+## Alignment: what is time zero?
+
+`onset_s` subtracts the event offset within the parsed epoch: for example, 2.0
+places sample 2000 at zero in a 1 kHz epoch. It does not detect an onset, read a
+valve delay, or detect inhalation. The previous label "declared alignment event"
+was deliberately general because inputs can already be realigned.
+
+For DIN-triggered HDF5 epochs, confirm the extraction convention and set
+`"event_alignment": "stimulus DIN onset"` (as in the example config). The axis
+then says **Time from stimulus DIN onset (s)**. Older HDF5 configs without this
+field retain an explicit "declared parsed-trial event" label rather than guessing.
+For NPZ, the embedded `event_alignment` and `time_s` are authoritative; config
+cannot silently relabel an inhalation-aligned input as stimulus-aligned.
+The existing preparer's first-high TTL metadata is displayed as stimulus DIN onset.
+
+DIN onset is the recorded delivery command, not a measured odor arrival time
+at the nose or mouth. Calling it simply "stimulus onset" can hide delivery and
+respiration delays. An inhalation-relative axis requires upstream realignment
+and a corresponding metadata declaration. Changing this label never shifts data.
+The (-0.75, -0.25) s baseline is relative to whichever event is declared; verify
+that it is truly prestimulus for realigned epochs.
+
 ## Outputs
 
 - `manifest_resolved.json`: all session locations and resolved configuration.
@@ -158,14 +192,22 @@ results need not match an unseeded historical run bit-for-bit.
   IDs, event/stimulus labels); PNG/PDF phase curves and descriptive power context;
   `provenance.json` (input SHA256, source paths, preprocessing declaration,
   reference commit, implementation/module hash, seed and settings).
+- `conditions.json`: stimulus/route counts, skipped conditions, route membership,
+  weighting, per-condition seeds and relative output directories.
+- `conditions/<label>-<hash>/`: separate coherence NPZ, band figure and GC/PC power
+  context PNG/PDF for each individual stimulus and each available route.
+- `ortho_vs_retro.png/.pdf`: matched-odor and combined-route comparisons across bands;
+  `ortho_vs_retro.npz` stores ortho-minus-retro bootstrap draws by band and time.
+- Run-level `conditions/<label>-<hash>/`: corresponding all-session aggregates.
 - `aggregate.npz` and `all_sessions.png/.pdf`: each completed session's band curves,
   baseline-deviation map and fraction of sessions deviating. No silent resampling
   occurs: mismatched time grids stop aggregate generation while preserving
   individual outputs. Failed sessions remain recorded and are excluded.
 
 Power context uses the coherence-selected electrodes, squared STFT magnitude,
-trial mean, then temporal z-score for each frequency (not baseline z-score or
-calibrated PSD). It is descriptive. No inferential error bars are placed on the
+within-stimulus trial mean (equal-odor mean for routes), then temporal z-score for each frequency (not baseline z-score or
+calibrated PSD). Each panel is standardized separately, so color differences do
+not establish absolute power differences between conditions. It is descriptive. No inferential error bars are placed on the
 aggregate: sessions are not independent animals. Animal IDs are metadata only.
 
 ## Figure flow
@@ -179,7 +221,10 @@ flowchart TD
     parsed --> verify["Validate sampling, alignment and eligibility"]
     clean --> verify
     verify --> phase["STFT and fixed representative electrodes"]
-    phase --> controls["Phase coherence, bootstrap and controls"]
+    phase --> split["Separate stimuli; keep electrodes fixed"]
+    split --> controls["Within-stimulus coherence, bootstrap and controls"]
+    controls --> routes["Equal-odor ortho and retro means"]
+    routes --> power["Separate GC and PC power context"]
     controls --> baseline["Band curves and baseline deviations"]
     baseline --> outputs["Per-session figures and provenance"]
     outputs --> aggregate["All-session curves and deviation maps"]

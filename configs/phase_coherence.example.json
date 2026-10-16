@@ -2,6 +2,7 @@
   "defaults": {
     "fs_hz": 1000,
     "onset_s": 2.0,
+    "event_alignment": "stimulus DIN onset",
     "region_keys": {"GC": "gc", "PC": "pc"},
     "stimulus_by_din": {"0": "BA", "1": "S", "2": "oIA", "3": "IA", "4": "oBA", "5": "BK"},
     "preprocessing": "REPLACE_ME: confirm filtering, reference, LFP extraction parameters, trial alignment, channel eligibility and artifact review"

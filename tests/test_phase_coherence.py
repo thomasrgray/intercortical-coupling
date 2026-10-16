@@ -10,7 +10,7 @@ except ImportError:
 import numpy as np
 from scipy.signal import stft, detrend
 from coupling.phase_coherence import (phase_locking, select_channels, calculate,
-    sustained_deviation, read_session_list, load_input, run, transform)
+    sustained_deviation, read_session_list, load_input, run, transform, equal_odor_result, alignment_label, analyze_conditions)
 
 
 class PhaseTests(unittest.TestCase):
@@ -41,6 +41,28 @@ class PhaseTests(unittest.TestCase):
         idx = rng.integers(8, size=8)
         full = abs(np.exp(1j*(phase[idx, expected[0]]-phase[idx, expected[1]])).mean(axis=0))
         np.testing.assert_allclose(r['bootstrap_band'][0, 0], full[(f>=3)&(f<8)].mean(axis=0))
+
+    def test_equal_odor_coherence_does_not_cancel_opposite_phase_lags(self):
+        # Perfectly locked odors with opposite GC-PC lags should each give 1.
+        f, t = np.arange(0, 100, 2), np.arange(100)*.01-1
+        results = []
+        for lag, n in [(0, 3), (np.pi, 9)]:
+            phase = np.zeros((n, 4, len(f), len(t)))
+            phase[:, 2:] = lag
+            results.append(calculate(phase, None, f, t, 'repository', 4, n,
+                                     [0, 2], np.array([[0, 1], [2, 3]])))
+        route = equal_odor_result(results)
+        np.testing.assert_allclose(route['coherence'], 1)
+        np.testing.assert_allclose(route['bootstrap_band'], 1)
+        # Different trial counts do not change the equal-odor weighting.
+        results[1]['coherence'][:] = 0
+        np.testing.assert_allclose(equal_odor_result(results)['coherence'], .5)
+
+    def test_alignment_is_not_inferred_from_onset_offset(self):
+        self.assertIn('declared parsed-trial event', alignment_label({'onset_s': 2}))
+        self.assertEqual(alignment_label({'event_alignment': 'stimulus DIN onset'}),
+                         'Time from stimulus DIN onset (s)')
+        self.assertIn('inhalation', alignment_label({'event_alignment': 'first inhalation'}))
 
     def test_signed_terminal_duration(self):
         t = np.arange(60)*.005
@@ -103,6 +125,15 @@ class PhaseTests(unittest.TestCase):
             rows = run(listing, cfg, root/'output', profile='paper', n_boot=3)
             self.assertEqual(rows[0]['status'], 'completed', rows)
             self.assertTrue((root/'output'/'all_sessions.pdf').exists())
+            folder = Path(rows[0]['output'])
+            conditions = json.loads((folder/'conditions.json').read_text())
+            self.assertEqual(conditions['ortho']['status'], 'skipped')
+            for label in ('A', 'B'):
+                target = folder/conditions[label]['directory']
+                self.assertTrue((target/'power_context.pdf').exists())
+                with np.load(target/'phase_coherence.npz') as result:
+                    self.assertEqual(set(result['stimulus']), {label})
+                    self.assertEqual(len(result['accepted_event_id']), 3)
             self.assertEqual(before, hashlib.sha256((session/'session.h5').read_bytes()).hexdigest())
             with self.assertRaises(FileExistsError):
                 run(listing, cfg, root/'output', check=True)
@@ -119,13 +150,16 @@ class PhaseTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             session, spec = self.fixture(Path(directory))
             data = load_input(session, spec)
-            phase, powers, f, t, used, selected, intra = transform(data, 'paper', 42)
+            phase, powers, f, t, used, selected, intra, by_stim = transform(data, 'paper', 42, by_stimulus=True)
             for local, original in enumerate(used):
                 x = data['x'][data['channels'][original], data['good']]
                 ef, et, z = stft(detrend(x, axis=-1), fs=1000, window='hann', nperseg=500, noverlap=495)
                 z = z[:, ef<100][:, :, et<5]
                 np.testing.assert_allclose(phase[:,local], np.angle(z))
                 np.testing.assert_allclose(powers[local], (abs(z)**2).mean(axis=0))
+                for label in ('A', 'B'):
+                    mask = data['stimulus'][data['good']] == label
+                    np.testing.assert_allclose(by_stim[label][local], (abs(z[mask])**2).mean(axis=0))
             np.testing.assert_allclose(t, et[et<5]-2)
 
     @unittest.skipIf(h5py is None, 'Install .[phase] for HDF5 integration tests')
