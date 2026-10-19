@@ -1,0 +1,43 @@
+{
+  "defaults": {
+    "spike_fs_hz": 1000,
+    "onset_s": 2.0,
+    "region_keys": {
+      "GC": "GC",
+      "PC": "PC"
+    },
+    "stimulus_by_din": {
+      "0": "BA",
+      "1": "S",
+      "2": "oIA",
+      "3": "IA",
+      "4": "oBA",
+      "5": "BK"
+    },
+    "single_units_only": true,
+    "detrend": "first_difference",
+    "windows_s": {
+      "baseline": [
+        -2,
+        0
+      ],
+      "evoked": [
+        0,
+        2
+      ]
+    },
+    "min_trials": 8,
+    "route_pairs": {
+      "BA": [
+        "BA",
+        "oBA"
+      ],
+      "IA": [
+        "IA",
+        "oIA"
+      ]
+    },
+    "preprocessing": "Feb2 TG22: supplied params specify 300-3000 Hz spike filtering and extraction durations of 2000 ms pre / 5000 ms post. Unit descriptor marks 26 single units: 21 GC and 5 PC. Trial table contains 30 chronological trials per stimulus, 180 total, all laser=False. Parsed arrays assumed to use 1 ms bins; verify HDF5 shape. Independent waveform/artifact QC has not been assessed here."
+  },
+  "sessions": {}
+}

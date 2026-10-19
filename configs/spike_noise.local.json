@@ -1,0 +1,15 @@
+{
+  "defaults": {
+    "spike_fs_hz": 1000,
+    "onset_s": 2.0,
+    "region_keys": {"GC": "gc", "PC": "pc"},
+    "stimulus_by_din": {"0": "BA", "1": "S", "2": "oIA", "3": "IA", "4": "oBA", "5": "BK"},
+    "single_units_only": true,
+    "detrend": "first_difference",
+    "windows_s": {"baseline": [-2, 0], "evoked": [0, 2]},
+    "min_trials": 8,
+    "route_pairs": {"BA": ["BA", "oBA"], "IA": ["IA", "oIA"]},
+    "preprocessing": "REPLACE_ME: confirm spike sorting/QC, parsed spike sample rate and onset, unit_descriptor row identity, chronological trials within DIN, and laser metadata"
+  },
+  "sessions": {}
+}
