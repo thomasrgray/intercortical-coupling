@@ -15,3 +15,19 @@ GLMs include own-history, stimulus/time and breathing terms; compare with/withou
 ## Output contract
 
 Save panel PNG/PDF, plotted values, counts/exclusions, configuration and source revision under `results/<run>/fig08_spike_coupling/`. Panel letters are provisional. No synthetic output may be labeled as study data.
+
+## Implemented Mahmood-style workflow
+
+See [methods, input contracts and commands](../../docs/mahmood_spike_transition.md).
+`coupling-spike-noise` implements noise correlations only; cross-correlograms
+and GLMs above remain planned.
+
+```mermaid
+flowchart TD
+ A[Sorted spike arrays and electrode map] --> B[Unit QC and joint trial masks]
+ B --> C[Stimulus and laser strata]
+ C --> D[Windowed counts and trial differences]
+ D --> E[Inter- and intra-region Spearman rho]
+ E --> F[Trial shuffles and multiplicity correction]
+ F --> G[Session figures and matched-odor contrasts]
+```

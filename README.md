@@ -12,6 +12,10 @@ No legacy scripts or recordings are changed. No study outcomes are assumed.
    the preferred Mahmood 2023 Figure 6 workflow and session-list template.
    The previous A–D/Granger commands below are legacy workflows.
 
+4. Continue with [`docs/mahmood_spike_transition.md`](docs/mahmood_spike_transition.md)
+   for sorted-spike noise correlations (Figure 8) and independently fitted transition
+   correlations (Figure 7). Both include batch preflight and progress reporting.
+
 ## Directory organization
 
 | Directory | Purpose |
