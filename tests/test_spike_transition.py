@@ -138,8 +138,8 @@ class CorrelationTests(unittest.TestCase):
                 cfg = folder/f'{kind}.json'
                 cfg.write_text(json.dumps({'defaults': spec}))
                 with contextlib.redirect_stderr(io.StringIO()), contextlib.redirect_stdout(io.StringIO()):
-                    run(kind, sessions, cfg, folder/(kind+'_check'), 9, 0, True)
-                    run(kind, sessions, cfg, folder/kind, 9, 0)
+                    run(kind, sessions, cfg, folder/(kind+'_check'), 9, 0, True, profile='adapted')
+                    run(kind, sessions, cfg, folder/kind, 9, 0, profile='adapted')
                 self.assertEqual(json.loads((folder/kind/'status.json').read_text())['state'], 'complete')
                 self.assertTrue((folder/kind/'all_sessions.csv').exists())
                 self.assertEqual(len(list((folder/kind).rglob('summary.png'))), 1)

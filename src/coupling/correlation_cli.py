@@ -9,6 +9,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from .phase_coherence import read_session_list, resolve_path, digest_file, write_json
 from .correlation import write_csv
+from . import mahmood_repository as repository
 
 REFERENCE_SHA = '9c54acb57e227dc9d13597750165b3ebc7be68e9'
 
@@ -42,6 +43,45 @@ def plot(rows, out, kind):
     plt.close(fig)
 
 
+def plot_fractions(rows, path):
+    groups = sorted({(r.get('session', ''), r['stratum']) for r in rows})
+    fig, axes = plt.subplots(len(groups), 1, figsize=(10, max(3.5, 3.5*len(groups))), squeeze=False)
+    for ax, (session, stratum) in zip(axes[:, 0], groups):
+        selected = [r for r in rows if (r.get('session', ''), r['stratum']) == (session, stratum)]
+        for i, row in enumerate(selected):
+            ax.plot([i, i], [row['shuffle_low_5'], row['shuffle_high_95']], c='.35', lw=3)
+            ax.scatter(i, row['fraction_significant'], c='tab:red' if row['comparison']=='GC-PC' else 'tab:blue', s=20)
+        ax.set_xticks(range(len(selected)), [r['stimulus']+' / '+r['comparison'] for r in selected], rotation=45, ha='right')
+        ax.axhline(.05, c='.7', ls='--', lw=1)
+        ax.set_ylabel('Fraction with Spearman p < .05')
+        ax.set_ylim(bottom=0)
+        ax.set_title(f'{session} {stratum}: dots=data; gray=5–95% shuffle interval')
+    fig.tight_layout()
+    for ext in ('png', 'pdf', 'svg'):
+        fig.savefig(path.with_suffix('.'+ext), dpi=180)
+    plt.close(fig)
+
+
+def plot_transition_population(rows, path):
+    groups = sorted({r['stratum'] for r in rows})
+    fig, axes = plt.subplots(1, len(groups), figsize=(5*len(groups), 4), squeeze=False)
+    for ax, stratum in zip(axes[0], groups):
+        matrix = np.full((3, 3), np.nan)
+        for row in rows:
+            if row['stratum'] == stratum:
+                a, b = row['gc_transition'], row['pc_transition']
+                matrix[a, b] = row['fraction']
+                if row['p_binomial_bonferroni'] < .05:
+                    ax.text(b, a, '*', ha='center', va='center', color='red')
+        im = ax.imshow(matrix, vmin=0, vmax=1, cmap='viridis')
+        ax.set(xlabel='PC transition', ylabel='GC transition', title=stratum, xticks=range(3), yticks=range(3))
+        fig.colorbar(im, ax=ax, label='Fraction of sessions above shuffle 90th percentile')
+    fig.tight_layout()
+    for ext in ('png', 'pdf', 'svg'):
+        fig.savefig(path.with_suffix('.'+ext), dpi=180)
+    plt.close(fig)
+
+
 def route_contrasts(rows, mapping, kind):
     """Descriptive paired differences, never a test treating pairs as animals."""
     result = []
@@ -61,7 +101,10 @@ def route_contrasts(rows, mapping, kind):
     return result
 
 
-def run(kind, list_path, config_path, out, repeats=10000, seed=0, check=False):
+def run(kind, list_path, config_path, out, repeats=None, seed=0, check=False, profile='repository'):
+    if profile not in ('repository', 'adapted'):
+        raise ValueError('Unknown analysis profile')
+    repeats = repeats if repeats is not None else (5000 if kind == 'transition' and profile == 'repository' else 10000)
     from . import spike_coupling, transition_coupling
     module = spike_coupling if kind == 'spike' else transition_coupling
     if repeats < 1 or seed < 0:
@@ -75,11 +118,18 @@ def run(kind, list_path, config_path, out, repeats=10000, seed=0, check=False):
         raise ValueError('Session basenames must be unique for output paths')
     out = Path(out)
     out.mkdir(parents=True, exist_ok=False)
-    write_json(out/'config.json', cfg)
+    write_json(out/'config.json', dict(**cfg, resolved_profile=profile, resolved_shuffles=repeats))
     reports, resolved = [], []
     for session in sessions:
         spec = {**cfg.get('defaults', {}), **overrides.get(session, {})}
-        report = dict(session=str(session), ready=False)
+        if profile == 'repository':
+            spec = dict(spec, analysis_profile=profile, min_trials=3)
+            if kind == 'spike':
+                spec.update(windows_s={'evoked': [0, 2]}, detrend='first_difference', single_units_only=False)
+                spec.pop('rolling_s', None)
+        else:
+            spec = dict(spec, analysis_profile=profile)
+        report = dict(session=str(session), ready=False, profile=profile, resolved_config=spec)
         try:
             if not spec.get('preprocessing') or 'REPLACE_ME' in str(spec['preprocessing']):
                 raise ValueError('Declare preprocessing, sorting/QC, alignment and trial order in config')
@@ -91,8 +141,12 @@ def run(kind, list_path, config_path, out, repeats=10000, seed=0, check=False):
                     raise ValueError(f'Invalid route_pairs for {odor}; need two present labels [retro, ortho]')
             if kind == 'spike':
                 spike_coupling.windows(spec, data['time_s'])
+                if profile == 'repository' and not np.allclose(np.diff(data['time_s']), .001):
+                    raise ValueError('Repository spike profile requires 1 ms bins')
                 if spec.get('detrend', 'first_difference') not in ('first_difference', 'none'):
                     raise ValueError('Unknown detrend method')
+            elif profile == 'repository' and (any(data[r]['mode_ms'].shape[1] != 3 for r in ('GC', 'PC')) or data['GC']['metadata']['bin_width_ms'] != data['PC']['metadata']['bin_width_ms']):
+                raise ValueError('Repository transition profile requires matching-bin four-state regional fits')
             elif int(spec.get('posterior_draws', 200)) < 1:
                 raise ValueError('posterior_draws must be positive')
             report.update(ready=True, trials=len(data['trial_id']), accepted_trials=int(data['good_trial'].sum()),
@@ -108,14 +162,14 @@ def run(kind, list_path, config_path, out, repeats=10000, seed=0, check=False):
         raise ValueError(f'Preflight failed; see {out}/preflight.json')
     if check:
         return
-    all_rows = []
+    all_rows, all_fractions, all_intra = [], [], []
     status = {'state': 'running', 'completed_sessions': []}
     write_json(out/'status.json', status)
     try:
         for index, (session, spec) in enumerate(resolved):
             folder = out/session.name/('fig08_spike_coupling' if kind == 'spike' else 'fig07_transition_coupling')
             folder.mkdir(parents=True)
-            print(f'{index+1}/{len(resolved)}: {session.name}', flush=True)
+            print(f'{index+1}/{len(resolved)}: {session.name} | profile={profile} | shuffles={repeats}', flush=True)
             data = module.load(session, spec)
             retention = dict(trial_id=data['trial_id'].astype(str).tolist(),
                              good_trial=data['good_trial'].tolist(),
@@ -128,7 +182,28 @@ def run(kind, list_path, config_path, out, repeats=10000, seed=0, check=False):
             else:
                 retention.update(models={r: data[r]['metadata'] for r in ('GC', 'PC')})
             write_json(folder/'retention.json', retention)
-            rows, nulls = module.analyze(data, spec, repeats, seed+index)
+            session_seed = seed if profile == 'repository' else seed+index
+            if profile == 'repository':
+                engine = repository.spike_analyze if kind == 'spike' else repository.transition_analyze
+                rows, nulls = engine(data, spec, repeats, session_seed)
+                if kind == 'spike':
+                    fractions, fraction_nulls = repository.spike_fractions(rows, nulls, session_seed)
+                    write_csv(folder/'significant_fractions.csv', fractions)
+                    np.savez_compressed(folder/'fraction_nulls.npz', **fraction_nulls)
+                    plot_fractions(fractions, folder/'significant_fractions')
+                    intra = repository.intra_region_pooled(rows)
+                    if intra:
+                        write_csv(folder/'intra_region_pooled.csv', intra)
+                        all_intra.extend(dict(session=session.name, animal_id=spec.get('animal_id', 'unknown'), **r) for r in intra)
+                    all_fractions.extend(dict(session=session.name, animal_id=spec.get('animal_id', 'unknown'), **r) for r in fractions)
+                else:
+                    setup, moving, setup_nulls = repository.transition_setup(data, session_seed)
+                    write_csv(folder/'matched_transitions.csv', setup)
+                    if moving:
+                        write_csv(folder/'uncertainty_ranked_windows.csv', moving)
+                    np.savez_compressed(folder/'matched_nulls.npz', **setup_nulls)
+            else:
+                rows, nulls = module.analyze(data, spec, repeats, session_seed)
             write_csv(folder/'correlations.csv', rows)
             contrasts = route_contrasts(rows, spec.get('route_pairs', {}), kind)
             if contrasts:
@@ -142,13 +217,23 @@ def run(kind, list_path, config_path, out, repeats=10000, seed=0, check=False):
             revision = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=Path(__file__).resolve().parent,
                                       capture_output=True, text=True).stdout.strip() or 'unavailable'
             write_json(folder/'provenance.json', dict(config=spec, source_revision=revision,
-                reference_revision=REFERENCE_SHA, seed=seed+index, shuffles=repeats,
+                reference_revision=REFERENCE_SHA, seed=session_seed, shuffles=repeats,
+                analysis_profile=profile, matched_transition_shuffles=10000 if kind == 'transition' and profile == 'repository' else None,
                 inputs=[dict(path=str(p), sha256=digest_file(p)) for p in data['sources']]))
             plot(rows, folder, kind)
             all_rows.extend(dict(session=session.name, animal_id=spec.get('animal_id', 'unknown'), **r) for r in rows)
             status['completed_sessions'].append(session.name)
             write_json(out/'status.json', status)
         write_csv(out/'all_sessions.csv', all_rows)
+        if all_fractions:
+            write_csv(out/'all_session_significant_fractions.csv', all_fractions)
+            plot_fractions(all_fractions, out/'all_session_significant_fractions')
+        if all_intra:
+            write_csv(out/'all_session_intra_region_pooled.csv', all_intra)
+        if kind == 'transition' and profile == 'repository':
+            population = repository.transition_population(all_rows)
+            write_csv(out/'transition_population.csv', population)
+            plot_transition_population(population, out/'transition_population')
         status['state'] = 'complete'
     except Exception as error:
         status.update(state='failed', error=str(error))
@@ -163,7 +248,8 @@ def main(kind):
     parser.add_argument('config')
     parser.add_argument('output')
     parser.add_argument('--check', action='store_true')
-    parser.add_argument('--shuffles', type=int, default=10000)
+    parser.add_argument('--profile', choices=['repository', 'adapted'], default='repository')
+    parser.add_argument('--shuffles', type=int, default=None, help='default: spike 10000; repository transition all-to-all 5000')
     parser.add_argument('--seed', type=int, default=0)
     args = parser.parse_args()
-    run(kind, args.session_list, args.config, args.output, args.shuffles, args.seed, args.check)
+    run(kind, args.session_list, args.config, args.output, args.shuffles, args.seed, args.check, args.profile)

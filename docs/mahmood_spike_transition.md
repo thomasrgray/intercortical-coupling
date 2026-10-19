@@ -1,4 +1,9 @@
-# Mahmood-style spike noise and transition correlations
+# Adapted spike noise and transition correlations
+
+**The default is now `--profile repository`.** For the closer reproduction of the
+reference setup and aggregation, follow [the repository-profile guide](mahmood_repository_parity.md).
+The analysis behavior described below is preserved with `--profile adapted`; input
+file contracts apply to both profiles.
 
 This adds runnable Figure 8 noise correlations and Figure 7 transition correlations
 alongside the existing phase-coherence workflow. It is an independent implementation
@@ -58,9 +63,9 @@ Use `sessions` overrides, keyed by absolute session directory, when settings dif
 ```bash
 RUN_STAMP=$(date +%Y%m%d_%H%M%S)
 coupling-spike-noise configs/fin_inter_list.txt configs/spike_noise.local.json \
-  "results/spike_check_${RUN_STAMP}" --check &&
+  "results/spike_check_${RUN_STAMP}" --profile adapted --check &&
 coupling-spike-noise configs/fin_inter_list.txt configs/spike_noise.local.json \
-  "results/spike_noise_${RUN_STAMP}" --shuffles 10000 --seed 0
+  "results/spike_noise_${RUN_STAMP}" --profile adapted --shuffles 10000 --seed 0
 ```
 
 `--check` checks every listed session, writes `preflight.json`, and exits unsuccessfully
@@ -165,9 +170,9 @@ cp configs/transition_corr.example.json configs/transition_corr.local.json
 # Edit preprocessing and confirm posterior file paths and metadata first.
 RUN_STAMP=$(date +%Y%m%d_%H%M%S)
 coupling-transition-corr configs/fin_inter_list.txt configs/transition_corr.local.json \
-  "results/transition_check_${RUN_STAMP}" --check &&
+  "results/transition_check_${RUN_STAMP}" --profile adapted --check &&
 coupling-transition-corr configs/fin_inter_list.txt configs/transition_corr.local.json \
-  "results/transition_corr_${RUN_STAMP}" --shuffles 10000 --seed 0
+  "results/transition_corr_${RUN_STAMP}" --profile adapted --shuffles 10000 --seed 0
 ```
 
 Posterior mode uses integer truncation of nonnegative bin samples, matching the

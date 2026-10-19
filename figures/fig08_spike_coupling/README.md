@@ -18,7 +18,7 @@ Save panel PNG/PDF, plotted values, counts/exclusions, configuration and source 
 
 ## Implemented Mahmood-style workflow
 
-See [methods, input contracts and commands](../../docs/mahmood_spike_transition.md).
+See [methods, input contracts and commands](../../docs/mahmood_repository_parity.md).
 `coupling-spike-noise` implements noise correlations only; cross-correlograms
 and GLMs above remain planned.
 
@@ -28,6 +28,6 @@ flowchart TD
  B --> C[Stimulus and laser strata]
  C --> D[Windowed counts and trial differences]
  D --> E[Inter- and intra-region Spearman rho]
- E --> F[Trial shuffles and multiplicity correction]
+ E --> F[Synchronized shuffles and significant-pair fractions]
  F --> G[Session figures and matched-odor contrasts]
 ```
