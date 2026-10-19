@@ -1,0 +1,10 @@
+{
+  "defaults": {
+    "posterior_files": {"GC": "transition_posteriors/GC.npz", "PC": "transition_posteriors/PC.npz"},
+    "min_trials": 8,
+    "posterior_draws": 200,
+    "route_pairs": {"BA": ["BA", "oBA"], "IA": ["IA", "oIA"]},
+    "preprocessing": "REPLACE_ME: document independent region fits, state-number choice, convergence, posterior predictive checks, trial identity/order, alignment and exclusions"
+  },
+  "sessions": {}
+}
