@@ -18,7 +18,7 @@ Save panel PNG/PDF, plotted values, counts/exclusions, configuration and source 
 
 ## Implemented Mahmood-style workflow
 
-See [methods, input contracts and commands](../../docs/mahmood_spike_transition.md).
+See [methods, input contracts and commands](../../docs/mahmood_repository_parity.md).
 `coupling-transition-corr` requires existing independent fits; it does not
 fit states or infer their biological identity.
 

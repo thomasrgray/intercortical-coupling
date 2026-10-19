@@ -11,7 +11,7 @@ dependencies = ["numpy>=1.24", "scipy>=1.10", "matplotlib>=3.7"]
 
 [project.optional-dependencies]
 phase = ["h5py>=3.8"]
-spikes = ["h5py>=3.8"]
+spikes = ["h5py>=3.8", "hdf5plugin>=4.0"]
 
 [project.scripts]
 coupling-spike-noise = "coupling.spike_coupling:main"
