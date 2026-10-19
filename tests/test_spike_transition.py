@@ -97,9 +97,10 @@ class CorrelationTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'trial ID sets'):
                 transition.load(folder, bad)
 
-    @unittest.skipUnless(importlib.util.find_spec('h5py'), 'install .[spikes] for HDF5 tests')
+    @unittest.skipUnless(importlib.util.find_spec('h5py') and importlib.util.find_spec('hdf5plugin'), 'install .[spikes] for HDF5 tests')
     def test_h5_region_mapping_and_opto(self):
         import h5py
+        import hdf5plugin
         with tempfile.TemporaryDirectory() as temp:
             folder = Path(temp)
             info = {'electrode_layout': {'gc': [[8]], 'pc': [[3]]}, 'laser_params': {'dig_in_nums': [7]}}
@@ -109,7 +110,7 @@ class CorrelationTests(unittest.TestCase):
             with h5py.File(path, 'w') as h:
                 h['unit_descriptor'] = units
                 group = h.create_group('spike_trains/dig_in_0')
-                group['spike_array'] = np.zeros((10, 3, 400))
+                group.create_dataset('spike_array', data=np.zeros((10, 3, 400)), **hdf5plugin.Blosc())
                 group['laser_durations'] = np.array([0, 500]*5)
                 group['laser_onset_lag'] = np.zeros(10)
             spec = {'spike_fs_hz': 100, 'onset_s': 2, 'stimulus_by_din': {'0': 'BA'}}

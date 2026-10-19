@@ -40,6 +40,10 @@ def load(session, spec):
 
 def load_h5(source, session, spec):
     import h5py
+    try:
+        import hdf5plugin  # noqa: F401 -- registers compression filters with HDF5
+    except ImportError as error:
+        raise ImportError("Install compression support: python -m pip install hdf5plugin") from error
     info_path = resolve_path(spec['info'], session) if spec.get('info') else only_file(session, ['*.info'])
     info = json.loads(info_path.read_text())
     keys = spec.get('region_keys', {'GC': 'gc', 'PC': 'pc'})
