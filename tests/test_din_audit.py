@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 import numpy as np
-from coupling.din_audit import read_pulses, audit, classify
+from coupling.din_audit import read_pulses, audit, classify, summary_arrays, plot_all_sessions
 
 
 class DinAuditTests(unittest.TestCase):
@@ -84,7 +84,8 @@ class DinAuditTests(unittest.TestCase):
             self.assertEqual(r["partial_pulses"], 1)
             self.assertTrue(any(r["status"] == "error" for r in rows))
             for name in ("pulse_widths.csv", "din_duration_summary.csv",
-                         "duration_comparison_01.png", "duration_comparison_01.pdf", "audit.json"):
+                         "duration_comparison_01.png", "duration_comparison_01.pdf", "audit.json",
+                         "all_sessions_summary.png", "all_sessions_summary.pdf", "all_sessions_summary.svg"):
                 self.assertTrue((root/"output"/name).is_file(), name)
             for p, digest in before.items():
                 self.assertEqual(hashlib.sha256(p.read_bytes()).hexdigest(), digest)
@@ -114,6 +115,28 @@ class DinAuditTests(unittest.TestCase):
                 rows = audit(listing, root/"out")
             self.assertTrue(all(r["status"] == "error" for r in rows))
             self.assertTrue(any("Declared DIN" in r["notes"] for r in rows))
+
+
+    def test_summary_preserves_missing_and_idle_sessions(self):
+        rows = [
+            dict(path="/a", din=0, status="ok", median_ms=15., complete_pulses=30),
+            dict(path="/a", din=2, status="warning", median_ms=2000., complete_pulses=29, partial_pulses=1),
+            dict(path="/b", din=0, status="ok", complete_pulses=0),
+            dict(path="/c", status="error", notes="missing header"),
+        ]
+        sessions, dins, widths, counts, cells = summary_arrays(rows)
+        self.assertEqual(sessions, ["/a", "/b", "/c"])
+        self.assertEqual(dins, [0,2])
+        self.assertEqual(widths[0,1], 2000.)
+        self.assertEqual(counts[1,0], 0)
+        self.assertTrue(np.isnan(widths[1:]).all())
+        self.assertTrue(np.isnan(counts[2]).all())
+        self.assertEqual(cells[0,1]["partial_pulses"], 1)
+
+    def test_all_failed_sessions_still_get_summary(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            plot_all_sessions([dict(path="/missing", status="error")], Path(tmp))
+            self.assertTrue((Path(tmp)/"all_sessions_summary.png").is_file())
 
 
 if __name__ == "__main__":

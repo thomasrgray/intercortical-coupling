@@ -117,6 +117,98 @@ def plot_results(rows, output):
         plt.close(fig)
 
 
+def summary_arrays(rows):
+    """Keep every session, including sessions with no valid pulse measurements."""
+    sessions = list(dict.fromkeys(r["path"] for r in rows))
+    dins = sorted({int(r["din"]) for r in rows if r.get("din", "") != ""})
+    widths = np.full((len(sessions), len(dins)), np.nan)
+    counts = np.full_like(widths, np.nan)
+    cells = {}
+    for row in rows:
+        if row.get("din", "") == "":
+            continue
+        key = (sessions.index(row["path"]), dins.index(int(row["din"])))
+        # Duplicate physical-DIN error rows are not measurements.
+        if row.get("median_ms", "") != "":
+            widths[key] = float(row["median_ms"])
+        if row.get("complete_pulses", "") != "":
+            counts[key] = int(row["complete_pulses"])
+        cells[key] = row
+    return sessions, dins, widths, counts, cells
+
+
+def plot_all_sessions(rows, output):
+    """One unpaginated two-panel overview; missing values stay blank, not zero."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.colors import LogNorm
+    sessions, dins, widths, counts, cells = summary_arrays(rows)
+    if not sessions:
+        return
+    # A placeholder column lets an all-failed audit still display every session.
+    if not dins:
+        widths = np.full((len(sessions), 1), np.nan)
+        counts = widths.copy()
+    fig, axes = plt.subplots(1, 2, sharey=True,
+        figsize=(max(12, 2.1*max(1, len(dins))+6), max(4, .7*len(sessions)+2)),
+        layout="constrained")
+    finite = widths[np.isfinite(widths) & (widths > 0)]
+    lo, hi = (float(finite.min()), float(finite.max())) if finite.size else (1., 2000.)
+    if lo == hi:
+        lo, hi = lo/2, hi*2
+    cmap = plt.get_cmap("viridis").copy()
+    cmap.set_bad("#eeeeee")
+    images = [
+        axes[0].imshow(np.ma.masked_invalid(widths), aspect="auto", cmap=cmap,
+                       norm=LogNorm(vmin=lo, vmax=hi)),
+        axes[1].imshow(np.ma.masked_invalid(counts), aspect="auto", cmap=cmap,
+                       vmin=0, vmax=max(1., float(np.nanmax(counts))) if np.isfinite(counts).any() else 1.)
+    ]
+    for i in range(len(sessions)):
+        for j in range(max(1, len(dins))):
+            row = cells.get((i, j), {})
+            label = row.get("stimulus") or "unassigned"
+            partial = int(row.get("partial_pulses") or 0)
+            flag = " *" if row.get("route_check") == "REVIEW" else ""
+            status = row.get("status", "")
+            if np.isfinite(widths[i, j]):
+                left = f"{widths[i,j]:.1f} ms{flag}\n{label}"
+            else:
+                left = "ERROR" if status == "error" else "—"
+            if np.isfinite(counts[i, j]):
+                right = f"{int(counts[i,j])} complete\n{partial} partial"
+            else:
+                right = "ERROR" if status == "error" else "—"
+            for ax, text in zip(axes, (left, right)):
+                ax.text(j, i, text, ha="center", va="center", fontsize=7,
+                        bbox=dict(facecolor="white", alpha=.85, edgecolor="none"))
+    for ax, title in zip(axes, ("A  Median complete-pulse duration",
+                                "B  Complete and boundary-partial pulse counts")):
+        ax.set_title(title, fontsize=11)
+        ax.set_xticks(range(max(1, len(dins))),
+                      [f"DIN {d:02d}" for d in dins] or ["No readable DIN"])
+        ax.set_xlabel("Digital input")
+    names = []
+    for i, session in enumerate(sessions):
+        session_rows = [r for r in rows if r["path"] == session]
+        errors = sum(r["status"] == "error" for r in session_rows)
+        suffix = f" [errors: {errors}]" if errors else ""
+        names.append(f"{i+1}: {Path(session).name}{suffix}")
+    axes[0].set_yticks(range(len(sessions)), names, fontsize=8)
+    axes[0].set_ylabel("Session")
+    fig.colorbar(images[0], ax=axes[0], label="Median width (ms; log scale)", shrink=.8)
+    fig.colorbar(images[1], ax=axes[1], label="Complete pulse count", shrink=.8)
+    fig.suptitle("All-session DIN summary\n"
+                 "* Duration/label mismatch; partial pulses excluded from medians; "
+                 "gray = unavailable; labels from .info", fontsize=11)
+    try:
+        for ext in ("png", "pdf", "svg"):
+            fig.savefig(Path(output)/f"all_sessions_summary.{ext}", dpi=180)
+    finally:
+        plt.close(fig)
+
+
 def audit(listing, output, split_ms=100.):
     if not np.isfinite(split_ms) or split_ms <= 0:
         raise ValueError("split_ms must be positive and finite")
@@ -209,6 +301,7 @@ def audit(listing, output, split_ms=100.):
         partial_pulses="Boundary high segments are censored and excluded from width statistics."
     ), indent=2))
     plot_results(rows, output)
+    plot_all_sessions(rows, output)
     return rows
 
 
