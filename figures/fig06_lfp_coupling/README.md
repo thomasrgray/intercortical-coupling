@@ -38,3 +38,9 @@ flowchart TD
     F --> G
     G --> H[PDF and SVG panels plus source values]
 ```
+
+## Across-session and animal summaries
+
+Use `coupling-summarize-lfp` to summarize completed power and phase-coupling runs.
+See [commands and weighting](../../docs/lfp_summary.md). It exports per-session
+comparison figures and descriptive equal-animal means without rerunning analyses.
