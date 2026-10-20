@@ -219,7 +219,7 @@ def transform(data, profile, seed=0, by_stimulus=False):
         t += data['time_s'][0]
         return z[:, fi][:, :, ti], f[fi], t[ti]
 
-    selected, powers = [], {}
+    selected, powers = [], []
     for region, group in zip(('GC', 'PC'), data['groups']):
         mean = None
         for index in progress(group, f'{region}: channel STFT pass 1/2'):
@@ -228,7 +228,6 @@ def transform(data, profile, seed=0, by_stimulus=False):
             if mean is None:
                 mean = np.zeros_like(p)
             mean += p / len(group)
-            powers[int(index)] = np.mean(abs(z)**2, axis=0)
         losses = []
         for index in progress(group, f'{region}: channel STFT pass 2/2'):
             z, _, _ = channel_stft(index)
@@ -243,13 +242,14 @@ def transform(data, profile, seed=0, by_stimulus=False):
     for index in progress(used, 'Selected/control channel STFT'):
         z, f, t = channel_stft(index)
         phases.append(np.angle(z))
+        powers.append(np.mean(abs(z)**2, axis=0))
         for label in condition_powers:
             mask = data['stimulus'][data['good']] == label
             condition_powers[label].append(np.mean(abs(z[mask])**2, axis=0))
     phase = np.stack(phases, axis=1)
     local_selected = [used.index(i) for i in selected]
     local_intra = np.array([[used.index(int(i)) for i in pair] for pair in intra])
-    result = (phase, np.stack([powers[i] for i in used]), f, t, np.array(used), local_selected, local_intra)
+    result = (phase, np.stack(powers), f, t, np.array(used), local_selected, local_intra)
     return result + ({k: np.stack(v) for k, v in condition_powers.items()},) if by_stimulus else result
 
 
@@ -279,6 +279,12 @@ def sustained_deviation(mean, bounds, time_s, minimum_s=.1):
 
 
 def calculate(phase, groups, f, t, profile, n_boot, seed, selected=None, intra=None):
+    if n_boot < 2:
+        raise ValueError('Require at least two bootstrap draws')
+    if phase.ndim != 4 or len(phase) < 3 or not np.isfinite(phase).all():
+        raise ValueError('Require finite trial × channel × frequency × time phases and at least 3 trials')
+    if phase.shape[2:] != (len(f), len(t)):
+        raise ValueError('Phase axes do not match frequency/time grids')
     rng = np.random.default_rng(seed)
     if selected is None:
         selected = select_channels(phase, groups, profile)
@@ -320,7 +326,7 @@ def calculate(phase, groups, f, t, profile, n_boot, seed, selected=None, intra=N
 
 def save_figure(fig, stem):
     fig.tight_layout()
-    for ext in ('png', 'svg'):
+    for ext in ('png', 'svg', 'pdf'):
         fig.savefig(stem.with_suffix('.'+ext), dpi=160)
     plt.close(fig)
 
@@ -542,6 +548,8 @@ def run(list_path, config_path, output, check=False, profile='repository', n_boo
         stage(f'[{session_number}/{len(manifest)}] {Path(row["session"]).name}: loading and validating input')
         session, spec = Path(row['session']), row['spec']
         status = dict(session=str(session), output_key=row['output_key'], animal_id=spec.get('animal_id'), status='checking')
+        # Release previous-session tensors before loading the next recording.
+        data = phase = powers = result = conditions = condition_powers = None
         try:
             data = load_input(session, spec)
             status.update(input=str(data['source']), accepted_trials=data['counts'],
