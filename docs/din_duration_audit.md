@@ -53,3 +53,13 @@ Warnings and REVIEW flags alone do not cause a nonzero exit. Output folders must
 Tests cover chunk boundaries, censored pulses, idle/nonbinary/truncated files,
 route heuristics, malformed metadata, duplicate/missing DINs, read-only behavior,
 and end-to-end CSV/PNG/PDF export.
+
+## Single all-session summary
+
+Every audit now also writes `all_sessions_summary.png`, `.pdf`, and `.svg`.
+Panel A shows all sessions × DINs, with median pulse duration and stimulus labels.
+Panel B shows complete-pulse counts and explicitly annotated boundary-partial counts.
+An asterisk flags duration/label disagreement. Sessions with failed reads remain visible;
+missing measurements are gray rather than represented as zero. The figure grows with
+session count and is not paginated. The earlier paginated plots remain available for
+very large lists. No averaging across different stimulus identities or sessions is done.
