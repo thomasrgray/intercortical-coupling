@@ -1,15 +1,40 @@
-# Figure 6 — Mahmood 2023 phase coherence
+# Figure 6 — LFP power and GC–PC coupling
 
-The preferred figure workflow is now [`coupling-phase-figure`](../../docs/mahmood_phase_coherence.md).
-It computes GC–PC phase coherence with representative electrodes, replacement
-bootstrap/shuffle controls, baseline deviations and all-session figures.
-Each stimulus has its own band curves and GC/PC power context. Matched-odor
-comparisons (oBA vs BA; oIA vs IA) accompany equal-odor ortho/retro summaries.
-See the guide for event-specific time labels and route weighting.
+Clean panel exports are produced here with `coupling-export-figure6`.
+The default destination is `figures/fig06_lfp_coupling/exports`; use
+`--output figures/fig06_lfp_coupling/exports_SESSION_RUN` for multiple sessions/runs.
+Run from the repository root. Generated exports are ignored by Git; source code and
+figure instructions remain tracked.
 
-Start with [`fin_inter_list.template.txt`](../../configs/fin_inter_list.template.txt)
-and [`phase_coherence.example.json`](../../configs/phase_coherence.example.json).
-The methods, file layout, command examples and flowchart are in the workflow guide.
+See the [phase workflow and batch export commands](../../lfp_phase_coherence/README.md)
+and [power workflow](../../lfp_power/README.md).
 
-The former A–D magnitude-squared-coherence/Granger contract remains available in
-[`legacy_A_D.md`](legacy_A_D.md) for reproducing old outputs.
+| Input | Clean panels |
+| --- | --- |
+| `session_power.npz` + sibling `provenance.json` | GC/PC × BA/IA × ortho/retro baseline-z power spectrograms |
+| Completed phase session with `conditions.json` | Matched-odor and equal-odor route coherence maps, ortho-minus-retro maps, band traces with pointwise 95% bootstrap intervals |
+
+Each panel is saved as editable-text SVG, embedded-font PDF and 300 dpi PNG.
+Heatmaps are rasterized inside vector files to keep file size manageable. Fonts are
+7–8 pt, axes compact, route colors fixed (blue ortho, orange retro), and decorative
+supertitles removed. These are assembly-ready components inspired by Mahmood's
+spectrogram/band-trace presentation, not a claim of exact published figure replication
+or Current Biology production compliance. Final panel lettering and layout remain an
+assembly step. Keep source values and `manifest.json` with the assembled figure.
+
+No biological results are included in this code change. Export actual completed runs;
+synthetic validation output must never be used as study data. Inspect upstream QC and
+provenance before selecting panels. Session bootstrap intervals do not establish an
+animal-level route effect. See [legacy A–D plan](legacy_A_D.md) for MSC/Granger diagnostics.
+
+```mermaid
+flowchart TD
+    A[Raw recording] --> B[Channel and trial QC]
+    B --> C[Cleaned trials]
+    C --> D[Power spectrograms]
+    C --> E[Phase coherence by odor]
+    E --> F[Matched route comparisons]
+    D --> G[Validated Figure 6 export]
+    F --> G
+    G --> H[PDF and SVG panels plus source values]
+```

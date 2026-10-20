@@ -1,5 +1,19 @@
 # Differential inter-cortical coupling in orthonasal and retronasal processing
 
+## LFP workflow entry points
+
+| Task | Start here |
+| --- | --- |
+| LFP power spectrogram generation | [lfp_power](lfp_power/README.md) |
+| Mahmood-style phase coherence and ortho–retro analyses | [lfp_phase_coherence](lfp_phase_coherence/README.md) |
+| Clean paper-panel export | [Figure 6](figures/fig06_lfp_coupling/README.md) |
+
+Workflow scripts and guides are grouped by analysis, matching the reference repository's
+organization. Numerical implementations remain in `src/coupling`; existing commands,
+imports, config paths and legacy script entry points still work. Run tests with
+`python -m unittest discover -s tests -v` after installing `.[phase,spikes]`.
+
+
 Figure-first manuscript repository. GC = gustatory cortex; PC = posterior piriform cortex.
 Each figure has a panel contract; reusable processing lives in `src/coupling`.
 No legacy scripts or recordings are changed. No study outcomes are assumed.

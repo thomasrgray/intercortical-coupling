@@ -11,3 +11,7 @@ results/
 *.npy
 *.nc
 .DS_Store
+
+# Local IDE state and generated paper panels
+.idea/
+figures/fig06_lfp_coupling/exports*/
