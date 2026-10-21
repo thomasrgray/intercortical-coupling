@@ -43,7 +43,7 @@ No legacy scripts or recordings are changed. No study outcomes are assumed.
 | `figures/fig07_transition_coupling/` | Coupling of inferred population transitions |
 | `figures/fig08_spike_coupling/` | Noise correlations, cross-correlations, Poisson GLMs |
 | `src/coupling/` | Shared tested computations |
-| `configs/` | Session/analysis configuration |
+| [`configs/`](configs/README.md) | Session/analysis configuration and command examples |
 | `scripts/` | Small entry points and synthetic demo |
 | `tests/` | Numerical and input-contract tests |
 | `docs/` | Methods decisions, data contracts, build order |

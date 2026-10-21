@@ -19,3 +19,10 @@ Power panels use the event label from preprocessing provenance rather than assum
 
 `python lfp_power/demo_power.py` creates explicitly synthetic input under `results/`.
 The old `scripts/demo_power.py` remains a compatibility entry point.
+
+Command to run coupling-summarize-LFP: output is to figures/fig06_lfp_coupling/summary_YYYYMMDD_HHMMSS, where YYYYMMDD_HHMMSS is the current date and time.
+
+coupling-summarize-lfp \
+   --phase-run "$LFP_RUN/phase" \
+   --power-root "$LFP_RUN" \
+   --output "figures/fig06_lfp_coupling/summary_$(date +%Y%m%d_%H%M%S)"
