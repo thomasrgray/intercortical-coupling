@@ -61,7 +61,7 @@ def route_arrays(snippets):
     return {route: np.asarray(rows) for route, rows in groups.items()}
 
 
-def figure(snippets, times, output, peak_polarity="unknown"):
+def figure(snippets, times, output, peak_polarity="unknown", spectra_csv=None):
     """Figure anatomy mirrors reference; C is pressure POWER, not neural coherence."""
     grouped = route_arrays(snippets)
     if not grouped:
@@ -88,18 +88,43 @@ def figure(snippets, times, output, peak_polarity="unknown"):
     scale_bar(ax)
     ax.set_title("A   Respiration traces / candidate peaks", loc="left", weight="bold")
 
-    # B: Welch pressure power; no neural signal has been supplied.
+    # B: Optional actual sorted-spike/respiration spectra imported from stage 03.
+    # If sorted units aren't available, label LFP curves as LFP, NEVER firing rate.
     ax = axs[1, 0]
-    for route, stack in grouped.items():
-        psds = []
-        for x in stack:
-            f, p = signal.welch(x, fs=FS, nperseg=min(1024, len(x)), noverlap=512)
-            psds.append(p)
-        power = np.mean(psds, axis=0)
-        ax.plot(f, power, color=PALETTE[route], label=f"{route} (n={len(stack)})", lw=1.5)
-    ax.set(xlim=(0, 12), xlabel="Frequency (Hz)", ylabel="Pressure power (Z²/Hz)")
-    ax.set_title("B   Respiration power spectrum", loc="left", weight="bold")
-    ax.legend(frameon=False, fontsize=8)
+    if spectra_csv is not None:
+        with Path(spectra_csv).open(newline="") as source:
+            rows = list(csv.DictReader(source))
+        has_spiking = any(row["signal_type"] == "firing_rate" for row in rows)
+        allowed = {"respiration", "firing_rate"} if has_spiking else {"respiration", "lfp"}
+        grouped_psd = {}
+        for row in rows:
+            if row["signal_type"] not in allowed:
+                continue
+            key = (row["route"], row["signal"])
+            grouped_psd.setdefault(key, []).append((float(row["frequency_hz"]), float(row["normalized_shape"])))
+        if not grouped_psd:
+            raise ValueError("No usable respiration or neural PSD rows in " + str(spectra_csv))
+        palette = {"Respiration":"#666666", "GC firing rate":"#6375a1",
+                   "PC firing rate":"#b27c70", "GC LFP":"#6375a1","PC LFP":"#b27c70"}
+        for (route, label), values in sorted(grouped_psd.items()):
+            values.sort()
+            ax.plot([x for x, _ in values], [y for _,y in values],
+                    label=f"{route} {label}", color=palette.get(label, ".3"),
+                    ls="-" if route == "Ortho" else "--", lw=1.3)
+        ax.set(xlim=(0, 12), xlabel="Frequency (Hz)", ylabel="Unit-area PSD (1–12 Hz)")
+        ax.set_title("B   Respiration / firing rate" if has_spiking else
+                     "B   Respiration / LFP (not firing)", loc="left", weight="bold")
+    else:
+        for route, stack in grouped.items():
+            psds = []
+            for x in stack:
+                f, p = signal.welch(x, fs=FS, nperseg=min(1024, len(x)), noverlap=512)
+                psds.append(p)
+            power = np.mean(psds, axis=0)
+            ax.plot(f, power, color=PALETTE[route], label=f"{route} (n={len(stack)})", lw=1.5)
+        ax.set(xlim=(0, 12), xlabel="Frequency (Hz)", ylabel="Pressure power (Z²/Hz)")
+        ax.set_title("B   Respiration power spectrum", loc="left", weight="bold")
+    ax.legend(frameon=False, fontsize=7)
 
     # C: pressure time-frequency power, explicitly NOT respiration-spike coherence.
     ax = axs[0, 1]
@@ -153,9 +178,10 @@ def main():
     p.add_argument("--output", required=True)
     p.add_argument("--raw-fs", type=int, default=30000)
     p.add_argument("--peak-polarity", choices=["unknown","positive","negative"], default="unknown")
+    p.add_argument("--spectra", default=None, help="Optional spectra.csv from 03_neural_spectra.py for panel B")
     args=p.parse_args()
     snippets, t=get_snippets(args.adc, trials_from_csv(args.trial_info), args.raw_fs)
-    figure(snippets,t,args.output,args.peak_polarity)
+    figure(snippets,t,args.output,args.peak_polarity,args.spectra)
     print(args.output)
 
 
