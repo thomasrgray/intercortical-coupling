@@ -39,3 +39,17 @@ Or `python -m coupling.sniffing --adc ... --trial-info ... --output ...`.
 * Summary rows are descriptive. Across-animal statistical tests must use animals as independent units, not channels, sniffs, or repeated trials.
 
 No existing LFP workflows are modified by this addition.
+
+## Reference-style A–D figure with 200-ms scale bar
+
+The attached literature panel motivated an optional paper-style 2×2 figure. Generate it with:
+
+```bash
+python respiration_sniffing/02_figure.py \\
+  --adc /path/to/board-ADC-00.dat \\
+  --trial-info /path/to/trial_info_frame.csv \\
+  --raw-fs 30000 \\
+  --output results/respiration_reference_style.pdf
+```
+
+Panels: **A** shows a single example orthonasal/retronasal pressure trace each, with candidate peak ticks and an exact **200 ms horizontal scale bar** in data coordinates; **B** plots route-specific Welch respiration power spectra; **C** shows the pressure time–frequency *power* spectrogram; **D** overlays route-specific smoothed standardized pressure energy ± trial SEM. These plots match the reference's compact A–D layout but **do not calculate neural coherence**: the provided recording has pressure ADC and DIN timestamps, not neural spike times. Coherence requires synchronized valid spiking/LFP events and an explicitly defined estimator and controls. This figure deliberately labels C as power and D as energy so it cannot be mistaken for a respiration–spiking coherence analysis. Route traces are illustrative; use animal-level replication for inference.
