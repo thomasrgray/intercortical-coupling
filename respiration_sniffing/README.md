@@ -53,3 +53,7 @@ python respiration_sniffing/02_figure.py \\
 ```
 
 Panels: **A** shows a single example orthonasal/retronasal pressure trace each, with candidate peak ticks and an exact **200 ms horizontal scale bar** in data coordinates; **B** plots route-specific Welch respiration power spectra; **C** shows the pressure time–frequency *power* spectrogram; **D** overlays route-specific smoothed standardized pressure energy ± trial SEM. These plots match the reference's compact A–D layout but **do not calculate neural coherence**: the provided recording has pressure ADC and DIN timestamps, not neural spike times. Coherence requires synchronized valid spiking/LFP events and an explicitly defined estimator and controls. This figure deliberately labels C as power and D as energy so it cannot be mistaken for a respiration–spiking coherence analysis. Route traces are illustrative; use animal-level replication for inference.
+
+## Respiration–LFP and sorted-spike firing-rate spectra
+
+Use `03_neural_spectra.py` to compare DIN-matched nasal respiration, QC-cleaned GC/PC LFP and (optionally) true sorted-unit GC/PC firing-rate spectra. The reference-style `02_figure.py` accepts `--spectra results/RUN/spectra.csv` to populate panel B without relabeling LFP as spiking. Detailed methods, paths, requirements and limitations: [neural_spectra.md](neural_spectra.md).
