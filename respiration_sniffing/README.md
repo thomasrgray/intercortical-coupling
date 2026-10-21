@@ -39,3 +39,59 @@ Or `python -m coupling.sniffing --adc ... --trial-info ... --output ...`.
 * Summary rows are descriptive. Across-animal statistical tests must use animals as independent units, not channels, sniffs, or repeated trials.
 
 No existing LFP workflows are modified by this addition.
+
+## Respiration power and LFP–respiration coherence (reference panels A–C)
+
+Use the **same session/configuration** for `coupling-prepare` and
+`coupling-respiration-qc` first (see the repository's respiration audit docs).
+Then run:
+
+```bash
+python -m coupling.respiration_spectra \
+  /path/to/prepared_session /path/to/respiration_audit \
+  results/respiration_lfp_spectra --window 1 --hop 0.1
+```
+
+The output directory must be new. The workflow reads `cleaned_lfp.npz`,
+`events.csv`, `preprocessing.json`, and the audit's `pressure_1khz.npz`,
+`events_respiration.csv`, `respiration_provenance.json`. It validates clock,
+source, original DIN/trial identity, onset sample, archive order and source-file
+freshness before combining signals. No raw recordings are distributed in this
+repository; run this on local session files.
+
+`BA_respiration_lfp.{png,pdf}` and `IA_respiration_lfp.{png,pdf}` compare matching
+odors across ortho/retro columns:
+
+- **A:** first accepted pressure trial, DIN at zero, 200 ms scale bar.
+- **B:** respiration and GC/PC LFP power spectra, unit-area normalized over
+  0–12 Hz for shape comparisons. Raw PSD density remains in `spectra.npz`.
+- **C:** GC and PC LFP–respiration magnitude-squared coherence heatmaps, with a
+  shared 0–1 scale. These are pressure–LFP estimates, distinct from GC–PC coherence.
+
+All six stimuli are processed separately and exported to `spectra.npz` and
+`spectra_0_2s.csv` when eligible, including sucrose and blank controls. Plots keep
+BA and IA separate; they do not pool distinct odors into a route average.
+CSV summaries average window centers from 0 to 2 s; windows at zero straddle
+stimulus onset. Pressure QC exclusions and accepted trial counts per channel
+are exported. LFP channel/trial masks are applied, and >=3 matched trials per
+channel/condition are required. Three is a computational minimum, not a claim
+of reliable estimation. Unequal retained trial counts can bias route contrasts;
+inspect counts before interpreting differences.
+
+The estimator uses Hann-tapered Fourier transforms of each trial in sliding
+windows, averages cross/auto spectra **across trials before** taking
+`abs(mean(Sxy))**2 / (mean(Sxx)*mean(Syy))`, then averages channel coherence within
+region. It never concatenates trials or averages common-average-referenced
+regional LFP waveforms (which can cancel). A 1 s window gives 1 Hz frequency
+bins and 1 s temporal resolution; the 0.1 s hop does not improve that resolution.
+
+Pressure power uses the anti-aliased unfiltered ADC cache (counts²/Hz); only the
+example waveform uses the audit's 0.5–20 Hz filter. LFP power is µV²/Hz and
+inherits the prepared 1–100 Hz filter, so sub-1-Hz content is attenuated. Unknown
+polarity permits spectra but no inhale/exhale labels. Missing screened cycles
+alone do not exclude a trial; signal/boundary QC failures do. Pressure validity
+still needs waveform review. Coherence includes stimulus-locked common signals
+and does not establish causal coupling. Single-session descriptive estimates
+have no inferential error bands; no spike trains are needed. DIN zero is a
+command timestamp, not measured odor arrival. Provenance records inputs,
+hashes, filters and estimation settings.
