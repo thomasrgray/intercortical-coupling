@@ -5,10 +5,27 @@ from pathlib import Path
 import h5py
 import numpy as np
 from coupling.events import write_csv
-from coupling.figure2 import load_sorted, alpha_filter, run
+from coupling.figure2 import load_sorted, alpha_filter, run, unit_regions
 
 
 class Figure2Tests(unittest.TestCase):
+    def test_region_key_variants_and_explicit_prepared_mapping(self):
+        self.assertEqual(unit_regions({'GC': [[1]], 'PC': [[2]]}), {'GC':[1], 'PC':[2]})
+        self.assertEqual(unit_regions({' gc ': [1], 'Pc': [2]}), {'GC':[1], 'PC':[2]})
+        with self.assertRaisesRegex(ValueError, 'unit-regions-from-prepared'):
+            unit_regions({'0': [1], '1': [2]})
+        with self.assertRaisesRegex(ValueError, 'Cannot identify'):
+            unit_regions({'GC':[1], 'gc':[2], 'PC':[3]})
+        self.assertEqual(unit_regions({'0':[1,2]}, {'GC':[1], 'PC':[2]}), {'GC':[1], 'PC':[2]})
+
+    def test_sorted_units_with_prepared_mapping(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d); ev,t=self.fixture(root)
+            (root/'session.info').write_text(json.dumps({'electrode_layout':{'0':[[1,2]]}}))
+            x,ids,regions,_,_=load_sorted(root,ev,30000,t,prepared_regions={'GC':[1], 'PC':[2]})
+            np.testing.assert_array_equal(regions,['GC','PC'])
+            self.assertEqual(x[0,0,2000],2)
+
     def fixture(self, root):
         (root/'session.info').write_text(json.dumps({'electrode_layout':{'gc':[[1]],'pc':[[2]]}}))
         with h5py.File(root/'session.h5','w') as h:

@@ -95,3 +95,16 @@ Synthetic tests verify exact spike timing/counts, region/identity failures, alph
 passband rejection, cache mismatch rejection and complete PNG/PDF/data export.
 Biological validation still requires running on the local recordings and inspecting
 the figure, sorting QC, assignments and retention tables.
+
+### Region names in older session metadata
+
+The default loader accepts `gc`/`pc`, `GC`/`PC`, and mixed-case variants.
+Numeric CAR groups are not interpreted as anatomical regions. If `.info` lacks
+anatomical keys, add `--unit-regions-from-prepared` to both check and generation
+commands to use the electrode-ID/region mapping already used for LFP processing.
+This requires HDF5 `unit_descriptor.electrode_number` to use the same electrode
+numbering as the prepared archive. No channel-index or unit-index substitution
+is performed. All mapped electrodes are used for unit assignment, including
+electrodes excluded by LFP QC; unit eligibility still uses `single_unit`. The
+chosen mapping is recorded in provenance. Existing prepared/respiration caches
+can be reused without rerunning preprocessing.

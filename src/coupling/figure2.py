@@ -16,7 +16,28 @@ from .respiration_lfp import read_rows, fingerprint
 from .respiration_spectra import load_inputs, FS
 
 
-def load_sorted(session, events, raw_fs, time_s, h5=None, info=None):
+def unit_regions(layout, prepared_regions=None):
+    """Resolve anatomical names without guessing numeric CAR-group meanings."""
+    if prepared_regions is not None:
+        regions = {r: list(prepared_regions[r]) for r in ('GC', 'PC')}
+    else:
+        regions = {}
+        for region in ('GC', 'PC'):
+            matches = [key for key in layout if str(key).strip().upper() == region]
+            if len(matches) != 1:
+                raise ValueError(
+                    f'Cannot identify {region} in electrode_layout keys {list(layout)}. '
+                    'Use --unit-regions-from-prepared only when unit_descriptor electrode_number '
+                    'uses the same electrode IDs as the prepared LFP mapping.')
+            regions[region] = flatten_ids(layout[matches[0]])
+    if any(not regions[r] for r in ('GC', 'PC')):
+        raise ValueError('Empty GC/PC electrode mapping')
+    if set(regions['GC']) & set(regions['PC']):
+        raise ValueError('Overlapping GC/PC electrode assignments')
+    return regions
+
+
+def load_sorted(session, events, raw_fs, time_s, h5=None, info=None, prepared_regions=None):
     """Bin absolute blech_clust sorted-unit sample times on the LFP clock.
 
     Read original times rather than indexing spike_array by trial position: the
@@ -34,9 +55,7 @@ def load_sorted(session, events, raw_fs, time_s, h5=None, info=None):
     if source.resolve().parent != session or info_path.resolve().parent != session:
         raise ValueError('Spike HDF5 and info must belong to the prepared session')
     layout = json.loads(info_path.read_text())['electrode_layout']
-    regions = {r: flatten_ids(layout[r.lower()]) for r in ('GC', 'PC')}
-    if set(regions['GC']) & set(regions['PC']):
-        raise ValueError('Overlapping GC/PC electrode assignments')
+    regions = unit_regions(layout, prepared_regions)
     ids, labels, electrodes, arrays = [], [], [], []
     with h5py.File(source, 'r') as h:
         if 'sorted_units' not in h or 'unit_descriptor' not in h:
@@ -82,12 +101,20 @@ def alpha_filter(x):
     return signal.sosfiltfilt(signal.butter(4, [8, 12], fs=FS, btype='bandpass', output='sos'), x, axis=-1)
 
 
-def run(prepared, audit, output, h5=None, info=None, check=False):
+def run(prepared, audit, output, h5=None, info=None, check=False, unit_regions_from_prepared=False):
     data, _, pressure, accepted, qc, meta, resp = load_inputs(prepared, audit)
     events = read_rows(Path(prepared)/'events.csv')
     t = data['time_s']
+    prepared_regions = None
+    if unit_regions_from_prepared:
+        with np.load(Path(prepared)/'cleaned_lfp.npz', allow_pickle=False) as z:
+            ids = z['electrode_id']
+        if ids.shape != data['region'].shape or len(np.unique(ids)) != len(ids):
+            raise ValueError('Invalid prepared electrode IDs')
+        prepared_regions = {r: ids[data['region'] == r].astype(int).tolist() for r in ('GC', 'PC')}
+        print('Unit regions: using prepared LFP electrode IDs (including LFP-QC-excluded electrodes)', flush=True)
     spikes, units, regions, electrodes, sources = load_sorted(
-        meta['source'], events, meta['raw_fs_hz'], t, h5, info)
+        meta['source'], events, meta['raw_fs_hz'], t, h5, info, prepared_regions)
     # Keep the same events in every row of a stimulus figure; choose deterministic
     # channels by QC coverage, never by alpha amplitude or apparent coupling.
     selections = []
@@ -161,6 +188,8 @@ def run(prepared, audit, output, h5=None, info=None, check=False):
     inputs = sources + [Path(prepared)/n for n in ('cleaned_lfp.npz','events.csv','preprocessing.json')] + [Path(audit)/n for n in ('pressure_1khz.npz','events_respiration.csv','respiration_provenance.json')]
     (out/'provenance.json').write_text(json.dumps(dict(lfp=meta,respiration=resp,
         hashes={str(p.resolve()):fingerprint(p) for p in inputs},
+        unit_region_source="prepared LFP electrode IDs" if unit_regions_from_prepared else "session info electrode_layout",
+        prepared_unit_regions=prepared_regions,
         alpha_hz=[8,12], filter='Butterworth order 4, forward/backward SOS on full -2 to +5 s epochs; display -0.5 to +2.5 s',
         spikes='sorted_units/unitNNN/times: raw sample indices; unit_descriptor single_unit; 1 ms counts on rounded LFP clock',
         selection='Per stimulus, each region channel with most valid pressure-matched trials; first shared accepted event',
@@ -174,8 +203,10 @@ def main():
     parser.add_argument('--h5', help='HDF5 filename inside session (required if ambiguous)')
     parser.add_argument('--info', help='Region .info filename inside session (required if ambiguous)')
     parser.add_argument('--check', action='store_true')
+    parser.add_argument('--unit-regions-from-prepared', action='store_true',
+                        help='Use prepared electrode IDs/GC-PC labels for units; requires matching electrode numbering')
     a = parser.parse_args()
-    run(a.prepared,a.audit,a.output,a.h5,a.info,a.check)
+    run(a.prepared,a.audit,a.output,a.h5,a.info,a.check,a.unit_regions_from_prepared)
 
 
 if __name__ == '__main__':
