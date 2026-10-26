@@ -159,3 +159,16 @@ and does not establish causal coupling. Single-session descriptive estimates
 have no inferential error bands; no spike trains are needed. DIN zero is a
 command timestamp, not measured odor arrival. Provenance records inputs,
 hashes, filters and estimation settings.
+
+## Add simultaneous spikes and alpha LFP (Figure 2)
+
+After steps 2–3 above, use the same `RUN` directory:
+
+```bash
+python -m coupling.figure2 "$RUN/prepared" "$RUN/respiration_audit" "$RUN/fig02_recording_validation" --check
+python -m coupling.figure2 "$RUN/prepared" "$RUN/respiration_audit" "$RUN/fig02_recording_validation"
+```
+
+This also requires a sorted session HDF5 and its `.info` electrode layout. See
+[Figure 2](../figures/fig02_recording_validation/README.md) for signal sources,
+selection rules, outputs, and interpretation.

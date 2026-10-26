@@ -9,7 +9,7 @@ folders preserve the outline; combine them later if the journal needs fewer figu
 | Figure | Question | Initial status |
 |---|---|---|
 | 1 | Can delivery/inhalation/retro timing be established? | Specification |
-| 2 | Are simultaneous recordings and assignments valid? | Specification |
+| 2 | Are simultaneous recordings and assignments valid? | [Spikes/alpha LFP/pressure examples implemented](../figures/fig02_recording_validation/README.md); histology and waveform QC pending |
 | 3 | Are PC responses reliable within each route? | Specification |
 | 4 | How do matched PC odor responses differ across routes? | Specification |
 | 5 | What dynamics occur in GC? | Specification |
