@@ -2,9 +2,9 @@
 
 Implemented: one descriptive figure per stimulus, from the **same accepted events**:
 
-- **A:** first matched trial's filtered nasal pressure, with a 200 ms scale bar.
+- **A:** sorted single-unit GC and PC rasters for the first accepted example trial.
 - **B:** GC and PC 8–12 Hz LFP from that same trial, one accepted electrode per region.
-- **C:** sorted single-unit GC and PC rasters for the same trial.
+- **C:** filtered nasal pressure for the same trial, with a 200 ms scale bar.
 - **D:** firing rate per unit, averaged over units and matched trials, in 50 ms bins.
 
 Histological placement and waveform/drift-quality panels remain separate inputs;
@@ -61,8 +61,10 @@ spectra validator. Ambiguous files, inconsistent unit IDs, overlapping regions,
 or no eligible single units in either region are errors. Unit IDs are descriptor
 row indices, not electrode IDs. HDF5/region file hashes are recorded.
 
-Per stimulus, select each region's accepted LFP channel with the most valid
-pressure-matched trials (ties: archive order); intersect their accepted trials.
+For each matched odor, use the same accepted LFP electrodes across routes.
+Select each region's electrode by maximizing the smaller of the two route-specific
+valid trial counts, then their sum (ties: archive order). Other stimuli use
+maximum valid trial coverage. Intersect GC/PC/pressure accepted trials per stimulus.
 Plot the first shared event. Selection is based on QC coverage, never alpha
 amplitude or apparent coupling. Export channel choices and counts. Regional CAR
 waveforms are **not averaged**, because that can cancel the signal.
@@ -70,7 +72,7 @@ waveforms are **not averaged**, because that can cancel the signal.
 Alpha filtering is fourth-order Butterworth 8–12 Hz, applied forward/backward to
 full −2 to +5 s epochs; display only −0.5 to +2.5 s to reduce boundary artifacts.
 This offline filter is acausal: do not use it to infer response onset or direction.
-Pressure polarity is shown as recorded; unknown polarity does not label inhalation.
+Pressure polarity is retained in provenance, not shown in titles; unknown polarity does not label inhalation.
 DIN zero is a command timestamp, not measured odor arrival.
 
 Firing rates are descriptive equal-unit averages on the same retained trials.
@@ -108,3 +110,13 @@ is performed. All mapped electrodes are used for unit assignment, including
 electrodes excluded by LFP QC; unit eligibility still uses `single_unit`. The
 chosen mapping is recorded in provenance. Existing prepared/respiration caches
 can be reused without rerunning preprocessing.
+
+### Orthonasal–retronasal comparison
+
+`BA_ortho_vs_retro.png/pdf` compares oBA (left) with BA (right);
+`IA_ortho_vs_retro.png/pdf` compares oIA with IA. Columns share time and row-specific
+y-axis scales, unit ordering and LFP electrodes. Each column shows its own first
+accepted trial for rasters/traces, followed by its matched-trial mean firing rate.
+These are descriptive examples, not simultaneous trials across routes or evidence
+of a significant route difference. Missing conditions are explicitly labeled.
+The existing per-stimulus figures also put rasters first.

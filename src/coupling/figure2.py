@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 from .events import write_csv
 from .phase_coherence import only_file, flatten_ids
 from .respiration_lfp import read_rows, fingerprint
-from .respiration_spectra import load_inputs, FS
+from .respiration_spectra import load_inputs, FS, PAIRS
 
 
 def unit_regions(layout, prepared_regions=None):
@@ -101,6 +101,37 @@ def alpha_filter(x):
     return signal.sosfiltfilt(signal.butter(4, [8, 12], fs=FS, btype='bandpass', output='sos'), x, axis=-1)
 
 
+def plot_column(axes, t, units, regions, spikes, pressure, alpha, channel_ids, event_id):
+    """Rasters first; all example traces use the first accepted event."""
+    rates = {}
+    for r, region in enumerate(('GC', 'PC')):
+        color = ('tab:blue', 'tab:orange')[r]
+        us = np.flatnonzero(regions == region)
+        axes[r].eventplot([t[spikes[u,0]>0] for u in us], colors=color,
+                          lineoffsets=np.arange(len(us)), linelengths=.8, linewidths=.8)
+        # Sparse tick labels avoid overlap for large populations; all units remain plotted.
+        ticks = np.arange(0, len(us), max(1, int(np.ceil(len(us)/12))))
+        axes[r].set(yticks=ticks, yticklabels=units[us[ticks]], ylim=(-.7,len(us)-.3),
+                    ylabel=f'{region} unit ID', title=f'A  {region} single units · event {event_id}')
+        axes[r+2].plot(t, alpha[r,0], color=color, lw=.8)
+        axes[r+2].set(ylabel=f'{region} alpha\n(µV)', title=f'B  8–12 Hz · electrode {channel_ids[r]}')
+        counts = spikes[us].reshape(len(us),spikes.shape[1],-1,50).sum(axis=-1)
+        rates[region] = counts.mean(axis=0)/.05
+        axes[5].plot(t.reshape(-1,50).mean(axis=1),rates[region].mean(axis=0),color=color,
+                     label=f'{region}: {len(us)} units, {spikes.shape[1]} trials')
+    axes[4].plot(t,pressure[0],color='black',lw=.8)
+    axes[4].set(ylabel='Pressure\n(ADC counts)',title='C  Respiration · same example trial')
+    axes[4].plot([2,2.2],[.08,.08],transform=axes[4].get_xaxis_transform(),color='black',lw=2)
+    axes[4].text(2.1,.1,'200 ms',transform=axes[4].get_xaxis_transform(),ha='center',fontsize=8)
+    axes[5].set(ylabel='Spikes/s/unit',xlabel='Time from DIN command (s)',
+                title='D  Population firing rate · 50 ms bins')
+    axes[5].legend(fontsize=8)
+    for ax in axes:
+        ax.axvline(0,color='.5',lw=.7,ls='--'); ax.set_xlim(-.5,2.5)
+        ax.spines[['top','right']].set_visible(False)
+    return rates
+
+
 def run(prepared, audit, output, h5=None, info=None, check=False, unit_regions_from_prepared=False):
     data, _, pressure, accepted, qc, meta, resp = load_inputs(prepared, audit)
     events = read_rows(Path(prepared)/'events.csv')
@@ -120,13 +151,19 @@ def run(prepared, audit, output, h5=None, info=None, check=False, unit_regions_f
     selections = []
     for stim in dict.fromkeys(data['stimulus']):
         candidates = accepted & (data['stimulus'] == stim)
+        paired = next((pair for pair in PAIRS.values() if stim in pair), (stim,))
+        masks = [accepted & (data['stimulus'] == label) for label in paired]
         channels = []
         for region in ('GC', 'PC'):
             possible = np.flatnonzero(data['good_channel'] & (data['region'] == region))
             if not len(possible):
                 raise ValueError('No eligible LFP channel in '+region)
-            scores = [np.sum(candidates & data['good_trial'][c] & np.isfinite(data['lfp_uv'][c]).all(axis=1)) for c in possible]
-            channels.append(int(possible[np.argmax(scores)]))
+            scores = []
+            for c in possible:
+                valid = data['good_trial'][c] & np.isfinite(data['lfp_uv'][c]).all(axis=1)
+                counts = [int(np.sum(mask & valid)) for mask in masks]
+                scores.append((min(counts),sum(counts)))
+            channels.append(int(possible[max(range(len(possible)), key=lambda k: scores[k])]))
         keep = candidates.copy()
         for c in channels:
             keep &= data['good_trial'][c] & np.isfinite(data['lfp_uv'][c]).all(axis=1)
@@ -152,36 +189,39 @@ def run(prepared, audit, output, h5=None, info=None, check=False, unit_regions_f
             continue
         j = js[0]
         alpha = np.stack([alpha_filter(data['lfp_uv'][c, js]) for c in channels])
-        fig, axes = plt.subplots(6, 1, figsize=(11, 11), sharex=True, layout='constrained')
-        axes[0].plot(t, pressure[j], color='black', lw=.8)
-        axes[0].set(ylabel='Pressure\n(ADC counts)', title=f'A  {stim} | event {events[j]["event_id"]} | pressure polarity: {resp["sign"]}')
-        for r, region in enumerate(('GC', 'PC')):
-            axes[r+1].plot(t, alpha[r, 0], lw=.8, color=('tab:blue','tab:orange')[r])
-            axes[r+1].set(ylabel=f'{region} alpha\n(µV)', title=f'B  8–12 Hz · electrode {channel_ids[channels[r]]}')
-            us = np.flatnonzero(regions == region)
-            axes[r+3].eventplot([t[spikes[u,j]>0] for u in us], colors=('tab:blue','tab:orange')[r], lineoffsets=np.arange(len(us)), linelengths=.8)
-            axes[r+3].set(yticks=np.arange(len(us)), yticklabels=units[us], ylabel=f'{region} unit ID', title='C  Same example trial · sorted single units')
-            # Non-overlapping 50 ms bins; equal unit mean, then matched-trial mean.
-            counts = spikes[us][:,js].reshape(len(us),len(js),-1,50).sum(axis=-1)
-            rate = counts.mean(axis=0)/.05
-            bt = t.reshape(-1,50).mean(axis=1)
-            axes[5].plot(bt, rate.mean(axis=0), label=f'{region}: {len(us)} units, {len(js)} trials')
+        fig, axes = plt.subplots(6, 1, figsize=(11, 13), sharex=True, layout='constrained',
+                                 gridspec_kw={'height_ratios':[1.6,1.2,1,1,1,1]})
+        rates = plot_column(axes,t,units,regions,spikes[:,js],pressure[js],alpha,
+                            channel_ids[channels],events[j]['event_id'])
+        for region, rate in rates.items():
             archive[f'{stim}__{region}_rate_hz'] = rate
-        axes[5].set(ylabel='Spikes/s/unit', xlabel='Time from DIN command (s)', title='D  Matched-trial population firing rate · 50 ms bins')
-        axes[5].legend(fontsize=8)
-        for ax in axes:
-            ax.axvline(0, color='.5', lw=.7, ls='--'); ax.set_xlim(-.5, 2.5)
-            ax.spines[['top','right']].set_visible(False)
-        axes[0].plot([2,2.2],[.08,.08],transform=axes[0].get_xaxis_transform(),color='black',lw=2)
-        axes[0].text(2.1,.1,'200 ms',transform=axes[0].get_xaxis_transform(),ha='center',fontsize=8)
-        fig.suptitle(Path(meta['source']).name+' · simultaneous recording examples')
+        fig.suptitle(Path(meta['source']).name+f' · {stim} · simultaneous recording examples')
         for ext in ('png','pdf'):
             fig.savefig(out/f'{number:02d}_figure2.{ext}', dpi=180)
         plt.close(fig)
+        archive[f'{stim}__electrode_id'] = channel_ids[channels]
         archive[f'{stim}__event_id'] = data['event_id'][js]
         archive[f'{stim}__pressure_counts'] = pressure[js]
         archive[f'{stim}__alpha_uv'] = alpha
         archive[f'{stim}__spike_counts'] = spikes[:,js]
+    for odor, pair in PAIRS.items():
+        fig, axes = plt.subplots(6,2,figsize=(16,13),sharex=True,sharey='row',
+                                 layout='constrained',gridspec_kw={'height_ratios':[1.6,1.2,1,1,1,1]})
+        for col, (route,stim) in enumerate(zip(('ORTHONASAL','RETRONASAL'),pair)):
+            if f'{stim}__event_id' not in archive:
+                for ax in axes[:,col]:
+                    ax.text(.5,.5,'No matched accepted trials',ha='center',transform=ax.transAxes)
+                axes[0,col].set_title(f'{route} · {stim}')
+                continue
+            plot_column(axes[:,col],t,units,regions,archive[f'{stim}__spike_counts'],
+                        archive[f'{stim}__pressure_counts'],archive[f'{stim}__alpha_uv'],
+                        archive[f'{stim}__electrode_id'],archive[f'{stim}__event_id'][0])
+            axes[0,col].set_title(f'{route} · {stim}\n'+axes[0,col].get_title(),fontweight='bold')
+        fig.suptitle(f'{odor} · Orthonasal versus retronasal\n'+Path(meta['source']).name,
+                     fontsize=15,fontweight='bold')
+        for ext in ('png','pdf'):
+            fig.savefig(out/f'{odor}_ortho_vs_retro.{ext}',dpi=180)
+        plt.close(fig)
     archive['rate_time_s'] = t.reshape(-1,50).mean(axis=1)
     np.savez_compressed(out/'plotted_data.npz', **archive)
     write_csv(out/'retention.csv',retention)
@@ -192,7 +232,7 @@ def run(prepared, audit, output, h5=None, info=None, check=False, unit_regions_f
         prepared_unit_regions=prepared_regions,
         alpha_hz=[8,12], filter='Butterworth order 4, forward/backward SOS on full -2 to +5 s epochs; display -0.5 to +2.5 s',
         spikes='sorted_units/unitNNN/times: raw sample indices; unit_descriptor single_unit; 1 ms counts on rounded LFP clock',
-        selection='Per stimulus, each region channel with most valid pressure-matched trials; first shared accepted event',
+        selection='For matched odors, same electrodes across routes: maximize minimum route trial coverage, then total coverage; ties archive order. First shared accepted event per stimulus. Other stimuli maximize coverage.',
         limitations='Descriptive session validation, not coupling inference. Single-unit flags are not independent sorting/drift QC. Laser conditions are not separated. No histology or waveform-quality claim. DIN is not odor arrival. Unknown polarity does not identify inhalation.'),indent=2))
     return out
 

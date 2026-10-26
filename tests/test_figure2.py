@@ -81,6 +81,8 @@ class Figure2Tests(unittest.TestCase):
             self.assertFalse((root/'check').exists())
             out=run(prep,audit,root/'out')
             self.assertTrue((out/'01_figure2.pdf').exists())
+            self.assertTrue((out/'BA_ortho_vs_retro.pdf').exists())
+            self.assertTrue((out/'IA_ortho_vs_retro.png').exists())
             with np.load(out/'plotted_data.npz') as z:
                 self.assertEqual(z['BA__spike_counts'][0,0,2000],2)
                 self.assertAlmostEqual(z['BA__GC_rate_hz'][0,40],40)
