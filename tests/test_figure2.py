@@ -5,7 +5,7 @@ from pathlib import Path
 import h5py
 import numpy as np
 from coupling.events import write_csv
-from coupling.figure2 import load_sorted, alpha_filter, run, unit_regions
+from coupling.figure2 import load_sorted, alpha_filter, run, unit_regions, amplitude_envelope
 
 
 class Figure2Tests(unittest.TestCase):
@@ -56,6 +56,10 @@ class Figure2Tests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'Overlapping'):
                 load_sorted(root,ev,30000,t,h5='session.h5')
 
+    def test_envelope_preserves_sinusoidal_amplitude(self):
+        t=np.arange(7000)/1000
+        np.testing.assert_allclose(amplitude_envelope(3*np.sin(2*np.pi*10*t)),3,atol=1e-10)
+
     def test_alpha_passband(self):
         t=np.arange(7000)/1000
         x=np.sin(2*np.pi*10*t)+np.sin(2*np.pi*30*t)
@@ -85,6 +89,9 @@ class Figure2Tests(unittest.TestCase):
             self.assertTrue((out/'IA_ortho_vs_retro.png').exists())
             with np.load(out/'plotted_data.npz') as z:
                 self.assertEqual(z['BA__spike_counts'][0,0,2000],2)
+                self.assertEqual(z['BA__prepared_lfp_uv'].shape,(2,1,7000))
+                self.assertEqual(z['BA__raw_pressure_counts'].shape,(1,7000))
+                np.testing.assert_allclose(z['BA__alpha_envelope_uv'],amplitude_envelope(z['BA__alpha_uv']))
                 self.assertAlmostEqual(z['BA__GC_rate_hz'][0,40],40)
             re[0]['ttl_raw_sample']=300002
             write_csv(audit/'events_respiration.csv',re)

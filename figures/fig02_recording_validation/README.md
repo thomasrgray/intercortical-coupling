@@ -120,3 +120,21 @@ accepted trial for rasters/traces, followed by its matched-trial mean firing rat
 These are descriptive examples, not simultaneous trials across routes or evidence
 of a significant route difference. Missing conditions are explicitly labeled.
 The existing per-stimulus figures also put rasters first.
+
+### Trace overlays and palette
+
+GC uses muted teal and PC muted rust, consistently across rasters, filtered LFP
+and firing rates. Light gray supplies background signal context; burgundy shows
+the analytic amplitude envelope (`abs(hilbert(signal))`).
+
+LFP rows overlay the **prepared, referenced 1–100 Hz LFP**, alpha-filtered
+8–12 Hz signal and alpha envelope. The background is not raw amplifier voltage.
+Respiration overlays the anti-aliased 1 kHz ADC signal (mean removed over the full
+7 s epoch), existing 0.5–20 Hz filtered pressure and its amplitude envelope.
+Envelopes are computed on full epochs before display cropping. The pressure
+envelope is a descriptive broadband magnitude, not a validated inhalation measure.
+No amplitude normalization is applied to either route.
+
+The NPZ additionally exports `prepared_lfp_uv`, `alpha_envelope_uv`,
+`raw_pressure_counts` (before display centering) and `pressure_envelope_counts`
+for each stimulus. Polarity remains recorded in provenance.
