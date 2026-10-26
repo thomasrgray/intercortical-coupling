@@ -138,3 +138,13 @@ No amplitude normalization is applied to either route.
 The NPZ additionally exports `prepared_lfp_uv`, `alpha_envelope_uv`,
 `raw_pressure_counts` (before display centering) and `pressure_envelope_counts`
 for each stimulus. Polarity remains recorded in provenance.
+
+### Readability update
+
+Background LFP and ADC traces now occupy slim independent context strips above
+their filtered signals, rather than setting the filtered panels' amplitude scales.
+Alpha/pressure and their envelopes remain together below each strip. The export
+is 17 inches tall at 300 dpi, with a vector PDF. Y limits use only displayed
+−0.5 to +2.5 s samples, shared between routes separately for every row. Raw
+context and filtered rows have independent, labeled scales; no data are rescaled
+or clipped within the displayed window. This supersedes the overlay layout above.

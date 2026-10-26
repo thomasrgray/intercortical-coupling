@@ -5,7 +5,7 @@ from pathlib import Path
 import h5py
 import numpy as np
 from coupling.events import write_csv
-from coupling.figure2 import load_sorted, alpha_filter, run, unit_regions, amplitude_envelope
+from coupling.figure2 import load_sorted, alpha_filter, run, unit_regions, amplitude_envelope, make_figure, visible_limits
 
 
 class Figure2Tests(unittest.TestCase):
@@ -59,6 +59,21 @@ class Figure2Tests(unittest.TestCase):
     def test_envelope_preserves_sinusoidal_amplitude(self):
         t=np.arange(7000)/1000
         np.testing.assert_allclose(amplitude_envelope(3*np.sin(2*np.pi*10*t)),3,atol=1e-10)
+
+    def test_context_and_offscreen_peaks_do_not_flatten_signal(self):
+        import matplotlib.pyplot as plt
+        fig,axes,contexts,grid=make_figure(2)
+        t=np.arange(-2000,5000)/1000
+        for col in range(2):
+            y=(col+1)*np.sin(2*np.pi*10*t)
+            y[0]=10000
+            axes[2,col].plot(t,y)
+            contexts[0,col].plot(t,100*np.sin(2*np.pi*10*t))
+        visible_limits(grid)
+        self.assertLess(axes[2,0].get_ylim()[1],3)
+        self.assertEqual(axes[2,0].get_ylim(),axes[2,1].get_ylim())
+        self.assertGreater(contexts[0,0].get_ylim()[1],100)
+        plt.close(fig)
 
     def test_alpha_passband(self):
         t=np.arange(7000)/1000
