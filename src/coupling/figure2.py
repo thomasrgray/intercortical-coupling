@@ -101,22 +101,11 @@ def alpha_filter(x):
     return signal.sosfiltfilt(signal.butter(4, [8, 12], fs=FS, btype='bandpass', output='sos'), x, axis=-1)
 
 
-REGION_COLORS = ('#007C83', '#B56A3B')
-RAW_COLOR = '#B8BEC4'
-ENVELOPE_COLOR = '#9B4264'
-
-
-def amplitude_envelope(x):
-    """Descriptive analytic-signal magnitude; not an inhalation detector."""
-    return np.abs(signal.hilbert(x, axis=-1))
-
-
-def plot_column(axes, t, units, regions, spikes, pressure, alpha, channel_ids, event_id,
-                broadband=None, raw_pressure=None, context_axes=None):
+def plot_column(axes, t, units, regions, spikes, pressure, alpha, channel_ids, event_id):
     """Rasters first; all example traces use the first accepted event."""
     rates = {}
     for r, region in enumerate(('GC', 'PC')):
-        color = REGION_COLORS[r]
+        color = ('tab:blue', 'tab:orange')[r]
         us = np.flatnonzero(regions == region)
         axes[r].eventplot([t[spikes[u,0]>0] for u in us], colors=color,
                           lineoffsets=np.arange(len(us)), linelengths=.8, linewidths=.8)
@@ -124,68 +113,27 @@ def plot_column(axes, t, units, regions, spikes, pressure, alpha, channel_ids, e
         ticks = np.arange(0, len(us), max(1, int(np.ceil(len(us)/12))))
         axes[r].set(yticks=ticks, yticklabels=units[us[ticks]], ylim=(-.7,len(us)-.3),
                     ylabel=f'{region} unit ID', title=f'A  {region} single units · event {event_id}')
-        if broadband is not None and context_axes is not None:
-            context_axes[r].plot(t,broadband[r,0],color='#929CA5',lw=.65)
-            context_axes[r].set(ylabel='µV',title=f'{region} prepared LFP (1–100 Hz) · electrode {channel_ids[r]}')
-        axes[r+2].plot(t,alpha[r,0],color=color,lw=1.1,label='Alpha (8–12 Hz)',zorder=2)
-        axes[r+2].plot(t,amplitude_envelope(alpha[r,0]),color=ENVELOPE_COLOR,lw=1.25,
-                       label='Alpha amplitude envelope',zorder=3)
-        axes[r+2].set(ylabel=f'{region} LFP\n(µV)', title=f'B  LFP and alpha · electrode {channel_ids[r]}')
-        axes[r+2].legend(loc='upper right',fontsize=7,frameon=True,facecolor='white',
-                         edgecolor='none',framealpha=.85,ncol=3)
+        axes[r+2].plot(t, alpha[r,0], color=color, lw=.8)
+        axes[r+2].set(ylabel=f'{region} alpha\n(µV)', title=f'B  8–12 Hz · electrode {channel_ids[r]}')
         counts = spikes[us].reshape(len(us),spikes.shape[1],-1,50).sum(axis=-1)
         rates[region] = counts.mean(axis=0)/.05
         axes[5].plot(t.reshape(-1,50).mean(axis=1),rates[region].mean(axis=0),color=color,
                      label=f'{region}: {len(us)} units, {spikes.shape[1]} trials')
-    if raw_pressure is not None and context_axes is not None:
-        raw_centered = raw_pressure[0]-np.mean(raw_pressure[0])
-        context_axes[2].plot(t,raw_centered,color='#929CA5',lw=.65)
-        context_axes[2].set(ylabel='Counts',title='Respiration ADC · 1 kHz, mean-centered')
-    axes[4].plot(t,pressure[0],color='#263238',lw=1.1,label='Pressure (0.5–20 Hz)',zorder=2)
-    axes[4].plot(t,amplitude_envelope(pressure[0]),color=ENVELOPE_COLOR,lw=1.25,
-                 label='Pressure amplitude envelope',zorder=3)
-    axes[4].legend(loc='upper right',fontsize=7,frameon=True,facecolor='white',
-                   edgecolor='none',framealpha=.85,ncol=2)
+    axes[4].plot(t,pressure[0],color='black',lw=.8)
     axes[4].set(ylabel='Pressure\n(ADC counts)',title='C  Respiration · same example trial')
     axes[4].plot([2,2.2],[.08,.08],transform=axes[4].get_xaxis_transform(),color='black',lw=2)
     axes[4].text(2.1,.1,'200 ms',transform=axes[4].get_xaxis_transform(),ha='center',fontsize=8)
     axes[5].set(ylabel='Spikes/s/unit',xlabel='Time from DIN command (s)',
                 title='D  Population firing rate · 50 ms bins')
-    axes[5].legend(fontsize=8,frameon=False)
-    for ax in list(axes)+(list(context_axes) if context_axes is not None else []):
-        ax.axvline(0,color='#87929A',lw=.7,ls='--'); ax.set_xlim(-.5,2.5)
+    axes[5].legend(fontsize=8)
+    for ax in axes:
+        ax.axvline(0,color='.5',lw=.7,ls='--'); ax.set_xlim(-.5,2.5)
         ax.spines[['top','right']].set_visible(False)
-        ax.tick_params(colors='#37434A',labelsize=9)
-        for side in ('left','bottom'):
-            ax.spines[side].set_color('#87929A'); ax.spines[side].set_linewidth(.6)
     return rates
 
 
-def make_figure(columns):
-    """Independent raw-context strips keep background peaks off signal scales."""
-    fig, grid = plt.subplots(9,columns,figsize=(11 if columns == 1 else 16,17),
-                             sharex=True,sharey='row',squeeze=False,layout='constrained',
-                             gridspec_kw={'height_ratios':[1.5,1,.45,1.4,.45,1.4,.45,1.4,1]})
-    return fig, grid[[0,1,3,5,7,8]], grid[[2,4,6]], grid
-
-
-def visible_limits(grid):
-    """Use displayed samples only; each row shares a scale across routes."""
-    for row in grid:
-        values=[]
-        for ax in row:
-            for line in ax.lines:
-                x=np.asarray(line.get_xdata()); y=np.asarray(line.get_ydata())
-                if len(x)>10:
-                    values.extend(y[(x>=-.5)&(x<=2.5)].tolist())
-        if values:
-            low,high=float(np.min(values)),float(np.max(values))
-            pad=max((high-low)*.12,1e-6)
-            row[0].set_ylim(low-pad,high+pad)
-
-
 def run(prepared, audit, output, h5=None, info=None, check=False, unit_regions_from_prepared=False):
-    data, raw_pressure, pressure, accepted, qc, meta, resp = load_inputs(prepared, audit)
+    data, _, pressure, accepted, qc, meta, resp = load_inputs(prepared, audit)
     events = read_rows(Path(prepared)/'events.csv')
     t = data['time_s']
     prepared_regions = None
@@ -241,30 +189,24 @@ def run(prepared, audit, output, h5=None, info=None, check=False, unit_regions_f
             continue
         j = js[0]
         alpha = np.stack([alpha_filter(data['lfp_uv'][c, js]) for c in channels])
-        fig, main_axes, contexts, grid = make_figure(1)
-        axes=main_axes[:,0]
+        fig, axes = plt.subplots(6, 1, figsize=(11, 13), sharex=True, layout='constrained',
+                                 gridspec_kw={'height_ratios':[1.6,1.2,1,1,1,1]})
         rates = plot_column(axes,t,units,regions,spikes[:,js],pressure[js],alpha,
-                            channel_ids[channels],events[j]['event_id'],
-                            broadband=data['lfp_uv'][channels][:,js],raw_pressure=raw_pressure[js],
-                            context_axes=contexts[:,0])
-        visible_limits(grid)
+                            channel_ids[channels],events[j]['event_id'])
         for region, rate in rates.items():
             archive[f'{stim}__{region}_rate_hz'] = rate
         fig.suptitle(Path(meta['source']).name+f' · {stim} · simultaneous recording examples')
         for ext in ('png','pdf'):
-            fig.savefig(out/f'{number:02d}_figure2.{ext}', dpi=300)
+            fig.savefig(out/f'{number:02d}_figure2.{ext}', dpi=180)
         plt.close(fig)
         archive[f'{stim}__electrode_id'] = channel_ids[channels]
         archive[f'{stim}__event_id'] = data['event_id'][js]
         archive[f'{stim}__pressure_counts'] = pressure[js]
         archive[f'{stim}__alpha_uv'] = alpha
-        archive[f'{stim}__prepared_lfp_uv'] = data['lfp_uv'][channels][:,js]
-        archive[f'{stim}__alpha_envelope_uv'] = amplitude_envelope(alpha)
-        archive[f'{stim}__raw_pressure_counts'] = raw_pressure[js]
-        archive[f'{stim}__pressure_envelope_counts'] = amplitude_envelope(pressure[js])
         archive[f'{stim}__spike_counts'] = spikes[:,js]
     for odor, pair in PAIRS.items():
-        fig, axes, contexts, grid = make_figure(2)
+        fig, axes = plt.subplots(6,2,figsize=(16,13),sharex=True,sharey='row',
+                                 layout='constrained',gridspec_kw={'height_ratios':[1.6,1.2,1,1,1,1]})
         for col, (route,stim) in enumerate(zip(('ORTHONASAL','RETRONASAL'),pair)):
             if f'{stim}__event_id' not in archive:
                 for ax in axes[:,col]:
@@ -273,15 +215,12 @@ def run(prepared, audit, output, h5=None, info=None, check=False, unit_regions_f
                 continue
             plot_column(axes[:,col],t,units,regions,archive[f'{stim}__spike_counts'],
                         archive[f'{stim}__pressure_counts'],archive[f'{stim}__alpha_uv'],
-                        archive[f'{stim}__electrode_id'],archive[f'{stim}__event_id'][0],
-                        broadband=archive[f'{stim}__prepared_lfp_uv'],
-                        raw_pressure=archive[f'{stim}__raw_pressure_counts'],context_axes=contexts[:,col])
+                        archive[f'{stim}__electrode_id'],archive[f'{stim}__event_id'][0])
             axes[0,col].set_title(f'{route} · {stim}\n'+axes[0,col].get_title(),fontweight='bold')
-        visible_limits(grid)
         fig.suptitle(f'{odor} · Orthonasal versus retronasal\n'+Path(meta['source']).name,
                      fontsize=15,fontweight='bold')
         for ext in ('png','pdf'):
-            fig.savefig(out/f'{odor}_ortho_vs_retro.{ext}',dpi=300)
+            fig.savefig(out/f'{odor}_ortho_vs_retro.{ext}',dpi=180)
         plt.close(fig)
     archive['rate_time_s'] = t.reshape(-1,50).mean(axis=1)
     np.savez_compressed(out/'plotted_data.npz', **archive)
@@ -291,12 +230,6 @@ def run(prepared, audit, output, h5=None, info=None, check=False, unit_regions_f
         hashes={str(p.resolve()):fingerprint(p) for p in inputs},
         unit_region_source="prepared LFP electrode IDs" if unit_regions_from_prepared else "session info electrode_layout",
         prepared_unit_regions=prepared_regions,
-        display=dict(region_colors=dict(zip(('GC','PC'),REGION_COLORS)),raw_color=RAW_COLOR,
-                     envelope_color=ENVELOPE_COLOR,
-                     layout='Independent context strips; matched route scales based on displayed samples only',
-                     background_lfp='Prepared 1–100 Hz referenced LFP, not raw amplifier voltage',
-                     background_pressure='Anti-aliased 1 kHz ADC, mean removed over full 7 s epoch for display',
-                     envelope='abs(Hilbert(filtered signal)) over full epoch; pressure envelope is descriptive broadband amplitude, not inhalation timing'),
         alpha_hz=[8,12], filter='Butterworth order 4, forward/backward SOS on full -2 to +5 s epochs; display -0.5 to +2.5 s',
         spikes='sorted_units/unitNNN/times: raw sample indices; unit_descriptor single_unit; 1 ms counts on rounded LFP clock',
         selection='For matched odors, same electrodes across routes: maximize minimum route trial coverage, then total coverage; ties archive order. First shared accepted event per stimulus. Other stimuli maximize coverage.',
@@ -318,3 +251,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

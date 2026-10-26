@@ -121,30 +121,11 @@ These are descriptive examples, not simultaneous trials across routes or evidenc
 of a significant route difference. Missing conditions are explicitly labeled.
 The existing per-stimulus figures also put rasters first.
 
-### Trace overlays and palette
 
-GC uses muted teal and PC muted rust, consistently across rasters, filtered LFP
-and firing rates. Light gray supplies background signal context; burgundy shows
-the analytic amplitude envelope (`abs(hilbert(signal))`).
+## Preferred version restored
 
-LFP rows overlay the **prepared, referenced 1–100 Hz LFP**, alpha-filtered
-8–12 Hz signal and alpha envelope. The background is not raw amplifier voltage.
-Respiration overlays the anti-aliased 1 kHz ADC signal (mean removed over the full
-7 s epoch), existing 0.5–20 Hz filtered pressure and its amplitude envelope.
-Envelopes are computed on full epochs before display cropping. The pressure
-envelope is a descriptive broadband magnitude, not a validated inhalation measure.
-No amplitude normalization is applied to either route.
-
-The NPZ additionally exports `prepared_lfp_uv`, `alpha_envelope_uv`,
-`raw_pressure_counts` (before display centering) and `pressure_envelope_counts`
-for each stimulus. Polarity remains recorded in provenance.
-
-### Readability update
-
-Background LFP and ADC traces now occupy slim independent context strips above
-their filtered signals, rather than setting the filtered panels' amplitude scales.
-Alpha/pressure and their envelopes remain together below each strip. The export
-is 17 inches tall at 300 dpi, with a vector PDF. Y limits use only displayed
-−0.5 to +2.5 s samples, shared between routes separately for every row. Raw
-context and filtered rows have independent, labeled scales; no data are rescaled
-or clipped within the displayed window. This supersedes the overlay layout above.
+The active code is the blue/orange rasters-first version from commit `e27e8c2`,
+without background overlays or envelopes. Both per-stimulus and ortho/retro
+comparison figures remain available. Later experiments are preserved in
+[the Figure 2 archive](../../archive/figure2/README.md), along with instructions
+for archiving generated images and associated results on the workstation.
