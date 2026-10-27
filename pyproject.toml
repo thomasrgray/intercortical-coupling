@@ -10,10 +10,16 @@ requires-python = ">=3.10"
 dependencies = ["numpy>=1.24", "scipy>=1.10", "matplotlib>=3.7"]
 
 [project.optional-dependencies]
+lfp = ["tables>=3.8", "pandas>=1.5", "joblib>=1.2", "tqdm>=4.64", "hdf5plugin>=4.0"]
 phase = ["h5py>=3.8"]
 spikes = ["h5py>=3.8", "hdf5plugin>=4.0"]
 
 [project.scripts]
+coupling-lfp-pipeline = "coupling.julia_lfp.pipeline:main"
+coupling-archive-results = "coupling.archive_results:main"
+coupling-lfp-validate = "coupling.julia_lfp.validate_LFP_data:main"
+coupling-lfp-clean = "coupling.julia_lfp.remove_lfp_artifacts:main"
+coupling-lfp-grand-average = "coupling.julia_lfp.grand_average_LFP:main"
 coupling-figure2 = "coupling.figure2:main"
 coupling-summarize-lfp = "coupling.lfp_summary:main"
 coupling-audit-dins = "coupling.din_audit:main"
@@ -26,10 +32,15 @@ coupling-lfp-figure = "coupling.lfp_coupling:main"
 coupling-respiration-lfp = "coupling.respiration_lfp:main"
 coupling-check-adc = "coupling.adc_check:main"
 coupling-respiration-qc = "coupling.respiration:main"
-coupling-compare-power = "coupling.compare:main"
-coupling-power = "coupling.power:main"
+coupling-compare-power = "coupling.julia_lfp.compare_LFP_spectrograms:main"
+coupling-compare-power-legacy = "coupling.compare:main"
+coupling-power = "coupling.julia_lfp.plot_LFP_spectrogram:main"
+coupling-power-legacy = "coupling.power:main"
 coupling-scan-dins = "coupling.events:main"
 coupling-prepare = "coupling.prepare:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+"coupling.julia_lfp" = ["LICENSE", "PROVENANCE.md"]

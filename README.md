@@ -1,3 +1,37 @@
+# GC–PC intercortical coupling
+
+## Current LFP plotting and power workflow
+
+The default LFP power pipeline now uses the full workflow from
+[`julia_blech_clust_testing`](https://github.com/thomasrgray/julia_blech_clust_testing/tree/1a4a4eb6346b00226e907228f4a2c3f658223907):
+channel validation and voltage plots, trial artifact removal, per-session
+spectrograms and pre/post spectra, grand averages, and animal-level comparisons.
+
+See **[the LFP workflow and archive commands](lfp_power/README.md)** for setup,
+outputs, analysis settings, and a clean rerun. No second repository is required.
+
+```bash
+cd "$HOME/intercortical-coupling"
+python -m pip install -e '.[lfp,phase,spikes]'
+# Preview before moving previous repository and session outputs:
+python scripts/archive_results.py --data-list configs/fin_inter_list.txt
+python scripts/archive_results.py --data-list configs/fin_inter_list.txt --apply
+coupling-lfp-pipeline --data-list configs/fin_inter_list.txt \
+  --output-dir "results/julia_lfp_$(date +%Y%m%d_%H%M%S)" --jobs 1
+```
+
+`coupling-power` and `coupling-compare-power` now use session inputs. The old
+NPZ interfaces have explicit `-legacy` names. Coherence, respiration, and spike
+analyses remain available. Existing `/Parsed_LFP` is reused; archiving does not
+remove raw data or HDF5 nodes.
+
+## Earlier analysis interfaces and project background
+
+The sections below document the prior NPZ-based power/figure workflow and the
+other project analyses. For new power plots use the workflow above. In particular,
+`coupling-prepare --plot-power`, Figure 6 and the power-summary tools below still
+consume the legacy power format; the new Julia workflow produces its own plots.
+
 # Differential inter-cortical coupling in orthonasal and retronasal processing
 
 ## LFP workflow entry points
@@ -138,28 +172,28 @@ FIGURES="$PWD/results/sample_comparisons_$(date +%Y%m%d_%H%M%S)"
 Matched IA route comparison in each region:
 
 ```bash
-coupling-compare-power "$POWER" "$FIGURES/GC_IA_vs_oIA" --left GC:IA --right GC:oIA
-coupling-compare-power "$POWER" "$FIGURES/PC_IA_vs_oIA" --left PC:IA --right PC:oIA
+coupling-compare-power-legacy "$POWER" "$FIGURES/GC_IA_vs_oIA" --left GC:IA --right GC:oIA
+coupling-compare-power-legacy "$POWER" "$FIGURES/PC_IA_vs_oIA" --left PC:IA --right PC:oIA
 ```
 
 Matched BA route comparison in each region:
 
 ```bash
-coupling-compare-power "$POWER" "$FIGURES/GC_BA_vs_oBA" --left GC:BA --right GC:oBA
-coupling-compare-power "$POWER" "$FIGURES/PC_BA_vs_oBA" --left PC:BA --right PC:oBA
+coupling-compare-power-legacy "$POWER" "$FIGURES/GC_BA_vs_oBA" --left GC:BA --right GC:oBA
+coupling-compare-power-legacy "$POWER" "$FIGURES/PC_BA_vs_oBA" --left PC:BA --right PC:oBA
 ```
 
 Taste responses across regions and an orthonasal odor versus blank:
 
 ```bash
-coupling-compare-power "$POWER" "$FIGURES/sucrose_GC_vs_PC" --left GC:S --right PC:S
-coupling-compare-power "$POWER" "$FIGURES/PC_oIA_vs_blank" --left PC:oIA --right PC:BK
+coupling-compare-power-legacy "$POWER" "$FIGURES/sucrose_GC_vs_PC" --left GC:S --right PC:S
+coupling-compare-power-legacy "$POWER" "$FIGURES/PC_oIA_vs_blank" --left PC:oIA --right PC:BK
 ```
 
 Optional third panel: **left minus right**, with a diverging color scale:
 
 ```bash
-coupling-compare-power "$POWER" "$FIGURES/GC_IA_difference" --left GC:IA --right GC:oIA --difference --difference-clim 1
+coupling-compare-power-legacy "$POWER" "$FIGURES/GC_IA_difference" --left GC:IA --right GC:oIA --difference --difference-clim 1
 ```
 
 Outputs include `comparison.png` (600 dpi), `comparison.pdf`, `comparison.svg`

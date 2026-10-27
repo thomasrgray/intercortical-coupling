@@ -1,5 +1,5 @@
-"""Workflow entry point; shared implementation in coupling.power."""
-from coupling.power import main
+"""LFP workflow entry point."""
+from coupling.julia_lfp.plot_LFP_spectrogram import main
 
 if __name__ == "__main__":
     main()
