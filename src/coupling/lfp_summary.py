@@ -1,4 +1,6 @@
 """Summarize saved LFP power and phase coupling across sessions and animals."""
+
+from coupling.array_store import load_arrays, save_arrays
 import argparse
 import hashlib
 import json
@@ -69,10 +71,10 @@ def read_phase(run, comparison, sources, excluded):
         sources.extend([provenance_path, conditions_path])
         means, first = [], None
         for label in pair:
-            path = (folder/conditions[label]["directory"]/"phase_coherence.npz").resolve()
+            path = (folder/conditions[label]["directory"]/"phase_coherence.h5").resolve()
             if folder not in path.parents:
                 raise ValueError("Condition path escapes session output")
-            with np.load(path, allow_pickle=False) as d:
+            with load_arrays(path, allow_pickle=False) as d:
                 meta = {k: d[k] for k in ("time_s", "frequency_hz", "band", "band_limits_hz",
                                           "alignment_label", "selected_electrode_id")}
                 grid(meta)
@@ -105,10 +107,10 @@ def read_phase(run, comparison, sources, excluded):
 
 def read_power(root, comparison, sources):
     records, seen = [], set()
-    for path in sorted(root.rglob("session_power.npz")):
+    for path in sorted(root.rglob("session_power.h5")):
         provenance_path = path.parent/"provenance.json"
         provenance = json.loads(provenance_path.read_text())
-        with np.load(path, allow_pickle=False) as d:
+        with load_arrays(path, allow_pickle=False) as d:
             meta = {k: d[k] for k in ("time_s", "frequency_hz")}
             grid(meta)
             regions, stimuli = d["region"].tolist(), d["stimulus"].tolist()
@@ -178,7 +180,7 @@ def plot_power(records, out, comparison):
     fig.colorbar(mesh, ax=axes.ravel().tolist(), label="Power / difference (z)", shrink=.6)
     fig.suptitle(f"{comparison} · equal-animal mean\n{len(records)} sessions; {len(animals)} animals; descriptive")
     save(fig, out, "animal_mean_power")
-    np.savez_compressed(out/"power_summary_values.npz", session_power=values,
+    save_arrays(out/"power_summary_values.h5", session_power=values,
         animal_power=per_animal, equal_animal_mean=grand, animal=np.array(animals),
         session=np.array([r["session"] for r in records]),
         session_animal=np.array([r["animal"] for r in records]),
@@ -231,7 +233,7 @@ def plot_phase(records, out, comparison):
     fig.suptitle(f"{comparison} · {len(records)} sessions; {len(animals)} animals\n"
                  "Thin: animal means; thick: equal-animal mean; descriptive")
     save(fig, out, "animal_mean_phase")
-    np.savez_compressed(out/"phase_summary_values.npz", session_coherence=values,
+    save_arrays(out/"phase_summary_values.h5", session_coherence=values,
         animal_coherence=per_animal, equal_animal_mean=grand, animal=np.array(animals),
         session=np.array([r["session"] for r in records]),
         session_animal=np.array([r["animal"] for r in records]),
@@ -252,7 +254,7 @@ def summarize(output, phase_run=None, power_root=None, comparison="route"):
     if phase_run is not None and not phase:
         raise ValueError("No completed matched phase conditions")
     if power_root is not None and not power:
-        raise ValueError("No session_power.npz found under power root")
+        raise ValueError("No session_power.h5 found under power root")
     output.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix=".lfp-summary-", dir=output.parent) as tmp:
         staged = Path(tmp)/"summary"; staged.mkdir()
@@ -280,7 +282,7 @@ def summarize(output, phase_run=None, power_root=None, comparison="route"):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--phase-run", type=Path, help="Completed phase run containing status.json")
-    parser.add_argument("--power-root", type=Path, help="One run root containing session_power.npz files")
+    parser.add_argument("--power-root", type=Path, help="One run root containing session_power.h5 files")
     parser.add_argument("--comparison", choices=tuple(COMPARISONS), default="route")
     parser.add_argument("--output", type=Path, required=True, help="New summary directory")
     args = parser.parse_args()

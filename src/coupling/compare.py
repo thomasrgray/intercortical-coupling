@@ -1,4 +1,6 @@
 """Publication exports of two saved session power panels; descriptive comparisons."""
+
+from coupling.array_store import load_arrays, save_arrays
 import argparse
 import hashlib
 import json
@@ -32,7 +34,7 @@ def compare(source, output, left='GC:IA', right='GC:oIA', clim=3.,
     for limit in (clim, difference_clim):
         if not np.isfinite(limit) or limit <= 0:
             raise ValueError('Color limits must be positive and finite')
-    with np.load(source, allow_pickle=False) as archive:
+    with load_arrays(source, allow_pickle=False) as archive:
         required = {'z_power', 'n_channels', 'frequency_hz', 'time_s', 'region',
                     'stimulus', 'session_id', 'animal_id', 'settings_json'}
         if not required.issubset(archive.files):
@@ -88,7 +90,7 @@ def compare(source, output, left='GC:IA', right='GC:oIA', clim=3.,
         for extension in ('png', 'pdf', 'svg'):
             fig.savefig(output/f'comparison.{extension}', dpi=600)
         plt.close(fig)
-    np.savez_compressed(output/'comparison_values.npz', left_z=a, right_z=b,
+    save_arrays(output/'comparison_values.h5', left_z=a, right_z=b,
                         difference_z=delta, frequency_hz=f, time_s=t,
                         left_n_channels=ca, right_n_channels=cb)
     metadata = dict(source=str(source.resolve()), input_sha256=hashlib.sha256(source.read_bytes()).hexdigest(),
@@ -111,7 +113,7 @@ def compare(source, output, left='GC:IA', right='GC:oIA', clim=3.,
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('session_power_npz')
+    parser.add_argument('session_power_arrays')
     parser.add_argument('output_directory')
     parser.add_argument('--left', default='GC:IA')
     parser.add_argument('--right', default='GC:oIA')
@@ -120,7 +122,7 @@ def main():
     parser.add_argument('--difference-clim', type=float, default=1.)
     parser.add_argument('--title')
     args = parser.parse_args()
-    print(compare(args.session_power_npz, args.output_directory, args.left, args.right,
+    print(compare(args.session_power_arrays, args.output_directory, args.left, args.right,
                   args.clim, args.difference, args.difference_clim, args.title))
 
 

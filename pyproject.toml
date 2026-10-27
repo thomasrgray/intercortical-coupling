@@ -7,7 +7,7 @@ name = "intercortical-coupling"
 version = "0.1.0"
 description = "Figure-first analyses of orthonasal and retronasal GC-PC recordings"
 requires-python = ">=3.10"
-dependencies = ["numpy>=1.24", "scipy>=1.10", "matplotlib>=3.7"]
+dependencies = ["numpy>=1.24", "scipy>=1.10", "matplotlib>=3.7", "h5py>=3.8"]
 
 [project.optional-dependencies]
 lfp = ["tables>=3.8", "pandas>=1.5", "joblib>=1.2", "tqdm>=4.64", "hdf5plugin>=4.0"]

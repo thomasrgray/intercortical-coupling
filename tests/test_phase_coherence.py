@@ -1,3 +1,5 @@
+
+from coupling.array_store import load_arrays, save_arrays
 import hashlib
 import json
 from pathlib import Path
@@ -72,7 +74,7 @@ class PhaseTests(unittest.TestCase):
         self.assertTrue(np.all(d[30:40] == 0))
         self.assertTrue(np.all(d[40:] == 1))
 
-    def test_npz_adapter_preserves_qc_and_time(self):
+    def test_arrays_adapter_preserves_qc_and_time(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             session = root/'raw'; session.mkdir()
@@ -84,12 +86,12 @@ class PhaseTests(unittest.TestCase):
             x = np.repeat(x, 2, axis=1)
             good = np.repeat(good, 2, axis=1);good[:,1] = True
             provenance = {k:'test' for k in ('source','reference','filtering','qc_method','event_alignment')}
-            np.savez(prepared/'cleaned_lfp.npz', lfp_uv=x, time_s=np.arange(5000)/1000-2,
+            save_arrays(prepared/'cleaned_lfp.h5', lfp_uv=x, time_s=np.arange(5000)/1000-2,
                      stimulus=np.repeat(['BA','IA','S','oBA','oIA','BK'],2),
                      electrode_id=[1,2,3,4], region=['GC','GC','PC','PC'],
                      good_channel=np.ones(4,dtype=bool), good_trial=good,
                      session_id='test', animal_id='test', provenance_json=json.dumps(provenance))
-            data = load_input(session, {'input':'../prepared/cleaned_lfp.npz'})
+            data = load_input(session, {'input':'../prepared/cleaned_lfp.h5'})
             self.assertEqual(data['good'].sum(), 11)
             self.assertEqual(data['counts']['BA'], 1)
             self.assertEqual(data['time_s'][0], -2)
@@ -131,7 +133,7 @@ class PhaseTests(unittest.TestCase):
             for label in ('A', 'B'):
                 target = folder/conditions[label]['directory']
                 self.assertTrue((target/'power_context.pdf').exists())
-                with np.load(target/'phase_coherence.npz') as result:
+                with load_arrays(target/'phase_coherence.h5') as result:
                     self.assertEqual(set(result['stimulus']), {label})
                     self.assertEqual(len(result['accepted_event_id']), 3)
             self.assertEqual(before, hashlib.sha256((session/'session.h5').read_bytes()).hexdigest())

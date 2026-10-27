@@ -66,7 +66,7 @@ Outputs in a new folder outside the recording:
   eligibility. No missing event is imputed or shifted to zero.
 - `pressure_cycles.csv`: candidate zero crossings, troughs, periods, prominence
   and screening reasons. Failed candidates remain in the inventory.
-- `pressure_1khz.npz`, `din_inventory.csv`, `respiration_provenance.json`.
+- `pressure_1khz.h5`, `din_inventory.csv`, `respiration_provenance.json`.
 
 ## Figure and controls
 

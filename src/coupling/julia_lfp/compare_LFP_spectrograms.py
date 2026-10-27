@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """Animal-level paired cluster permutation tests of cleaned LFP spectrograms."""
+
+from coupling.array_store import save_arrays
 import argparse
 import itertools
 import json
@@ -138,7 +140,7 @@ def make_figure(name, conditions, arrays, animals, freq, time, test_mask,
         count = sum(c["p_family"] <= args.alpha for c in result["clusters"])
         ax.set_title(f"{label}\n{count} significant cluster(s)")
         fig.colorbar(im, ax=ax, label="Difference in baseline z-score")
-        np.savez_compressed(output / f"{name}_contrast_{index+1}.npz",
+        save_arrays(output / f"{name}_contrast_{index+1}.h5",
                             animals=np.array(animals), animal_difference=difference,
                             frequency_hz=freq, time_s=time, test_mask=test_mask,
                             t=result["t"], p_family=result["p_family"],

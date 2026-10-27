@@ -10,10 +10,11 @@ import hashlib
 import json
 from pathlib import Path
 import shutil
+from .array_store import is_array_store
 
 SESSION_OUTPUTS = ('LFP_channel_check', 'cleaned_LFP_artifacts', 'LFP_analyses')
-FIGURE_SUFFIXES = {'.png', '.svg', '.pdf', '.jpg', '.jpeg', '.npz', '.npy', '.csv', '.json', '.pkl'}
-PROTECTED_SUFFIXES = {'.dat', '.rhd', '.rhs', '.h5', '.hdf5', '.info', '.params'}
+FIGURE_SUFFIXES = {'.png', '.svg', '.pdf', '.jpg', '.jpeg', '.npz', '.h5', '.hdf5', '.npy', '.csv', '.json', '.pkl'}
+PROTECTED_SUFFIXES = {'.dat', '.rhd', '.rhs', '.info', '.params'}
 
 
 def session_paths(data_list=None, datasets=()):
@@ -65,6 +66,14 @@ def plan_archive(repo, sessions, extra_outputs=()):
         entries = [source] + (list(source.rglob('*')) if source.is_dir() else [])
         if any(p.is_symlink() for p in entries):
             raise ValueError(f'Refusing symlink in selected output: {source}')
+        for p in entries:
+            if p.is_file() and p.suffix.lower() in {'.h5', '.hdf5'}:
+                try:
+                    derived = is_array_store(p)
+                except (OSError, ValueError):
+                    derived = False
+                if not derived:
+                    raise ValueError(f'Recording/unrecognized HDF5 found inside output: {p}')
         if any(p.suffix.lower() in PROTECTED_SUFFIXES or p.name in
                {'trial_info_frame.csv', 'dig_in_frame.csv', '.git'} for p in entries):
             raise ValueError(f'Recording/metadata found inside output; inspect before archiving: {source}')

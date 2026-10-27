@@ -11,7 +11,7 @@ The example assigns channels explicitly; do not infer regions from sorted units.
 
 ```bash
 coupling-prepare /path/to/recording configs/tg22_feb2.example.json results/session_prepared
-coupling-lfp-figure results/session_prepared/cleaned_lfp.npz \
+coupling-lfp-figure results/session_prepared/cleaned_lfp.h5 \
   results/session_run/fig06_lfp_coupling \
   --config configs/tg22_feb2.example.json
 ```
@@ -23,7 +23,7 @@ run, but Panel A explicitly labels those diagnostics unavailable. Re-preparing
 adds measured reference diagnostics. Optional existing spectrogram command:
 
 ```bash
-coupling-power results/session_prepared/cleaned_lfp.npz results/session_run/power_spectrograms
+coupling-power results/session_prepared/cleaned_lfp.h5 results/session_run/power_spectrograms
 ```
 
 ## Processing flowchart
@@ -137,10 +137,10 @@ This Python implementation is not the MVGC toolbox itself.
 Under `results/<run>/fig06_lfp_coupling/`:
 
 - `A_qc`, `B_power`, `C_coherence`, `D_granger`: each PNG and PDF.
-- `plotted_values.npz`: channel PSD, pairwise coherence/Granger, controls, route
+- `plotted_values.h5`: channel PSD, pairwise coherence/Granger, controls, route
   differences and contributing counts; named frequency/window/direction/stimulus
   coordinates, event/electrode IDs, masks and animal/session IDs.
-- `reference_filter_diagnostics.npz`: measured reference PSDs and declared filter
+- `reference_filter_diagnostics.h5`: measured reference PSDs and declared filter
   amplitude response where available (absent keys mean unavailable).
 - `retention.csv`: channel × stimulus accepted/total counts and coupling selection.
 - `pair_event_qc.csv`: original event IDs and pair-specific shared acceptance.

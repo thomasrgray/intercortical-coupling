@@ -1,4 +1,6 @@
 """Raw Intan DAT -> separate mapped/QC-masked LFP archive. Originals are read-only."""
+
+from coupling.array_store import save_arrays
 import argparse
 import csv
 import json
@@ -205,13 +207,13 @@ def prepare(folder,config_path,output):
             _,p=welch(trials[c,j],fs=1000,nperseg=1000);after.append(p)
         if before:
             before_psd[c]=np.mean(before,axis=0);after_psd[c]=np.mean(after,axis=0)
-    np.savez_compressed(out/'cleaned_lfp.npz',lfp_uv=trials,time_s=np.arange(-2000,5000)/1000,
+    save_arrays(out/'cleaned_lfp.h5',lfp_uv=trials,time_s=np.arange(-2000,5000)/1000,
         stimulus=np.array([e['stimulus'] for e in events]),event_id=np.arange(len(events)),
         electrode_id=np.array([c['electrode_id'] for c in channels]),region=np.array([c['region'] for c in channels]),
         good_channel=good,good_trial=good_trial,session_id=config['session_id'],animal_id=config['animal_id'],
         provenance_json=json.dumps(provenance),reference_frequency_hz=np.arange(501),
         unreferenced_psd=before_psd,referenced_psd=after_psd)
-    return out/'cleaned_lfp.npz'
+    return out/'cleaned_lfp.h5'
 
 
 def main():

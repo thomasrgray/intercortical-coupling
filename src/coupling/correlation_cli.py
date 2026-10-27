@@ -1,4 +1,6 @@
 """Batch drivers, audit trail and figures for spike/transition correlations."""
+
+from coupling.array_store import save_arrays
 import argparse
 import json
 from pathlib import Path
@@ -189,7 +191,7 @@ def run(kind, list_path, config_path, out, repeats=None, seed=0, check=False, pr
                 if kind == 'spike':
                     fractions, fraction_nulls = repository.spike_fractions(rows, nulls, session_seed)
                     write_csv(folder/'significant_fractions.csv', fractions)
-                    np.savez_compressed(folder/'fraction_nulls.npz', **fraction_nulls)
+                    save_arrays(folder/'fraction_nulls.h5', **fraction_nulls)
                     plot_fractions(fractions, folder/'significant_fractions')
                     intra = repository.intra_region_pooled(rows)
                     if intra:
@@ -201,16 +203,16 @@ def run(kind, list_path, config_path, out, repeats=None, seed=0, check=False, pr
                     write_csv(folder/'matched_transitions.csv', setup)
                     if moving:
                         write_csv(folder/'uncertainty_ranked_windows.csv', moving)
-                    np.savez_compressed(folder/'matched_nulls.npz', **setup_nulls)
+                    save_arrays(folder/'matched_nulls.h5', **setup_nulls)
             else:
                 rows, nulls = module.analyze(data, spec, repeats, session_seed)
             write_csv(folder/'correlations.csv', rows)
             contrasts = route_contrasts(rows, spec.get('route_pairs', {}), kind)
             if contrasts:
                 write_csv(folder/'route_contrasts.csv', contrasts)
-            np.savez_compressed(folder/'nulls.npz', **nulls)
+            save_arrays(folder/'nulls.h5', **nulls)
             if kind == 'transition':
-                np.savez_compressed(folder/'posterior_summary.npz', trial_id=data['trial_id'],
+                save_arrays(folder/'posterior_summary.h5', trial_id=data['trial_id'],
                                     good_trial=data['good_trial'], stimulus=data['stimulus'], stratum=data['stratum'],
                                     gc_mode_ms=data['GC']['mode_ms'], pc_mode_ms=data['PC']['mode_ms'],
                                     gc_variance_ms2=data['GC']['variance_ms2'], pc_variance_ms2=data['PC']['variance_ms2'])

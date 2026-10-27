@@ -108,6 +108,7 @@ def remove_dataset_artifacts(data_dir, mad_threshold,
         "dataset": dataset,
         "data_dir": data_dir,
         "approved_lfp_positions": approved_positions,
+        "approved_lfp_positions_by_region": validation["good_lfp_positions_by_region"],
         "excluded_taste_indices": sorted(excluded_taste_indices),
         "excluded_taste_names": [taste_names[i]
                                  for i in sorted(excluded_taste_indices)],
@@ -122,19 +123,14 @@ def remove_dataset_artifacts(data_dir, mad_threshold,
         # on channel noise rather than genuine trial-level artifacts.
         # ephys_data stores trials x channels x samples; the blech_clust
         # artifact routine expects channels x trials x samples.
-        # If validation approved no channels, fall back to all channels.
+        # No approved channels is an error, not permission to use rejected channels.
         if approved_positions:
             channel_trial_data = lfp_data[:, approved_positions, :].swapaxes(0, 1)
         else:
-            channel_trial_data = lfp_data.swapaxes(0, 1)
+            raise ValueError("No approved channels; cannot create cleaned LFP trials")
         good_trials = lfp_processing.return_good_lfp_trial_inds(
             channel_trial_data, MAD_threshold=mad_threshold)
-        # Fail safe: if every trial would be rejected, keep them all.
-        if not np.any(good_trials):
-            print(f"  WARNING: taste {taste_names[taste_index]} (index "
-                  f"{taste_index}) has no trials passing the MAD threshold "
-                  "on approved channels; keeping all trials")
-            good_trials = np.ones(lfp_data.shape[0], dtype=bool)
+        # Preserve an empty result when every trial fails; never restore rejected trials.
         cleaned = lfp_data[good_trials]
         # Files are numbered by taste index, the same order as the LFP arrays
         file_stem = f"taste_{taste_index:02d}"
@@ -146,6 +142,7 @@ def remove_dataset_artifacts(data_dir, mad_threshold,
             "input_shape": list(lfp_data.shape),
             "output_shape": list(cleaned.shape),
             "retained_trials": int(np.sum(good_trials)),
+            "retained_trial_indices": np.flatnonzero(good_trials).tolist(),
             "removed_trials": int(np.sum(~good_trials)),
             "taste_excluded_by_user": taste_index in excluded_taste_indices,
             "output_file": output_path

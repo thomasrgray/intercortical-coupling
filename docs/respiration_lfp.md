@@ -122,7 +122,7 @@ frequency-level counts are recorded. Shared display limits default to ±3 z.
   screening only, not physiological validation. Missing latencies stay empty.
 - `paired_channel_trials.csv`: auditable per-channel/event retention and reasons.
 - `pressure_cycles.csv`: screened and rejected cycle candidates (if any).
-- `paired_power.npz`: numerical paired panels and frequency-level channel counts.
+- `paired_power.h5`: numerical paired panels and frequency-level channel counts.
 - `provenance.json`, `caption.txt`: configuration, sources, review notes, cached
   processing provenance, source stats, small-input hashes, revision and limitations.
 

@@ -1,5 +1,10 @@
 # GC–PC intercortical coupling
 
+**Storage update:** analysis archives now use HDF5 throughout; NPZ is no longer
+read or written. Regenerate prior outputs rather than renaming files. See
+[the HDF5 migration and Julia-to-phase workflow](docs/hdf5_workflow.md).
+
+
 ## Current LFP plotting and power workflow
 
 The default LFP power pipeline now uses the full workflow from
@@ -21,13 +26,13 @@ coupling-lfp-pipeline --data-list configs/fin_inter_list.txt \
 ```
 
 `coupling-power` and `coupling-compare-power` now use session inputs. The old
-NPZ interfaces have explicit `-legacy` names. Coherence, respiration, and spike
+HDF5 interfaces have explicit `-legacy` names. Coherence, respiration, and spike
 analyses remain available. Existing `/Parsed_LFP` is reused; archiving does not
 remove raw data or HDF5 nodes.
 
 ## Earlier analysis interfaces and project background
 
-The sections below document the prior NPZ-based power/figure workflow and the
+The sections below document the prior power/figure workflow and the
 other project analyses. For new power plots use the workflow above. In particular,
 `coupling-prepare --plot-power`, Figure 6 and the power-summary tools below still
 consume the legacy power format; the new Julia workflow produces its own plots.
@@ -161,11 +166,11 @@ read -r -e -p "Paste the full completed processing folder path: " RUN
 export RUN
 ```
 
-The chosen folder must contain `power/session_power.npz`; choose the processing
+The chosen folder must contain `power/session_power.h5`; choose the processing
 folder, not a folder ending in `_din_scan`. Set the input and a fresh figure folder:
 
 ```bash
-POWER="$RUN/power/session_power.npz"
+POWER="$RUN/power/session_power.h5"
 FIGURES="$PWD/results/sample_comparisons_$(date +%Y%m%d_%H%M%S)"
 ```
 
@@ -391,7 +396,7 @@ hypothesis. This optional extension does not establish measured odor arrival.
 
 ## LFP Figure 6: A–D session workflow
 
-Run `coupling-lfp-figure CLEANED_NPZ OUTPUT_DIRECTORY` for QC, GC/PC power,
+Run `coupling-lfp-figure CLEANED_HDF5 OUTPUT_DIRECTORY` for QC, GC/PC power,
 magnitude-squared coherence and diagnostic-gated directional spectral Granger.
 See [Figure 6 instructions and processing flowchart](figures/fig06_lfp_coupling/README.md)
 for raw-session commands, matched-odor contrasts, outputs and interpretation limits.

@@ -1,3 +1,5 @@
+
+from coupling.array_store import load_arrays
 import hashlib
 import json
 import struct
@@ -69,7 +71,7 @@ class RespirationTests(unittest.TestCase):
             self.assertEqual(meta['physiological_timing_trials'],0)
             self.assertEqual(meta['candidate_screen_pass_trials'],6)
             self.assertEqual(json.loads((verified/'respiration_provenance.json').read_text())['physiological_timing_trials'],6)
-            with np.load(verified/'pressure_1khz.npz') as a,np.load(inverted/'pressure_1khz.npz') as b:
+            with load_arrays(verified/'pressure_1khz.h5') as a,load_arrays(inverted/'pressure_1khz.h5') as b:
                 np.testing.assert_allclose(a['filtered_counts'],-b['filtered_counts'])
             self.assertEqual(json.loads((inverted/'respiration_provenance.json').read_text())['physiological_timing_trials'],0)
             self.assertEqual(before,hashlib.sha256((session/'board-ADC-00.dat').read_bytes()).hexdigest())

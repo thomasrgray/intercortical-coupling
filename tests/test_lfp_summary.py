@@ -1,3 +1,5 @@
+
+from coupling.array_store import load_arrays, save_arrays
 import json
 from pathlib import Path
 import tempfile
@@ -31,7 +33,7 @@ class LFPSummaryTests(unittest.TestCase):
             conditions = {}
             for label, value in [("ortho", .6+i*.1), ("retro", .3+i*.1)]:
                 target = folder/label; target.mkdir()
-                np.savez(target/"phase_coherence.npz", time_s=t, frequency_hz=f,
+                save_arrays(target/"phase_coherence.h5", time_s=t, frequency_hz=f,
                          band=["theta"], band_limits_hz=[[3,8]],
                          alignment_label="Time from stimulus DIN onset (s)",
                          selected_electrode_id=[1,33],
@@ -44,7 +46,7 @@ class LFPSummaryTests(unittest.TestCase):
             for region in range(2):
                 for stim in range(4):
                     x[region,stim] = region*10+stim+i
-            np.savez(p/"session_power.npz", time_s=t, frequency_hz=f,
+            save_arrays(p/"session_power.h5", time_s=t, frequency_hz=f,
                      region=["PC","GC"], stimulus=["IA","oIA","BA","oBA"], z_power=x,
                      animal_id=animal, session_id=sid, settings_json=json.dumps({"baseline_s":[-1.5,-.5]}))
             (p/"provenance.json").write_text(json.dumps({
@@ -69,7 +71,7 @@ class LFPSummaryTests(unittest.TestCase):
                          "all_sessions_phase","animal_mean_phase"):
                 for ext in ("png","pdf","svg"):
                     self.assertGreater((out/f"{stem}.{ext}").stat().st_size, 100)
-            with np.load(out/"phase_summary_values.npz") as d:
+            with load_arrays(out/"phase_summary_values.h5") as d:
                 np.testing.assert_allclose(d["equal_animal_mean"][0], .65)
                 np.testing.assert_allclose(d["equal_animal_mean"][1], .35)
             manifest = json.loads((out/"summary_manifest.json").read_text())
@@ -81,11 +83,11 @@ class LFPSummaryTests(unittest.TestCase):
     def test_grid_mismatch_fails_before_publication(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp); run, power = self.fixture(root)
-            path = run/"session_1/retro/phase_coherence.npz"
-            with np.load(path) as d:
+            path = run/"session_1/retro/phase_coherence.h5"
+            with load_arrays(path) as d:
                 values = dict(d)
             values["time_s"] = values["time_s"]+.01
-            np.savez(path, **values)
+            save_arrays(path, **values)
             with self.assertRaisesRegex(ValueError, "time_s"):
                 summarize(root/"out", run, power)
             self.assertFalse((root/"out").exists())
@@ -93,11 +95,11 @@ class LFPSummaryTests(unittest.TestCase):
     def test_duplicate_power_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp); run, power = self.fixture(root)
-            path = power/"session_1/session_power.npz"
-            with np.load(path) as d:
+            path = power/"session_1/session_power.h5"
+            with load_arrays(path) as d:
                 values = dict(d)
             values.update(animal_id="animal_0", session_id="session_0")
-            np.savez(path, **values)
+            save_arrays(path, **values)
             with self.assertRaisesRegex(ValueError, "Duplicate power"):
                 read_power(power, "route", [])
 

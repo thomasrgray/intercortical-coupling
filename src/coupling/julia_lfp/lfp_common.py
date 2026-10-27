@@ -389,6 +389,9 @@ def load_cleaned_lfps(dat, data_dir, taste_names):
             raise ValueError(
                 f"Cleaned LFP {cleaned_path} does not match its artifact "
                 f"report")
+        if len(cleaned) == 0:
+            print(f"  Skipping {taste_names[taste_index]}: no trials passed QC")
+            continue
         cleaned_arrays.append(cleaned)
         active_indices.append(taste_index)
         active_names.append(taste_names[taste_index])

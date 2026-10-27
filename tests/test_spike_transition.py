@@ -1,3 +1,5 @@
+
+from coupling.array_store import save_arrays
 import contextlib
 import io
 import importlib.util
@@ -37,8 +39,8 @@ def save_posteriors(folder, mismatch=False):
         data = {k: v[order] for k, v in trial_data().items()}
         if mismatch and region == 'PC':
             data['trial_id'][0] = 'other'
-        path = folder/f'{region}.npz'
-        np.savez(path, tau=np.tile(tau[order], (8, 1, 1)), metadata_json=json.dumps(metadata), **data)
+        path = folder/f'{region}.h5'
+        save_arrays(path, tau=np.tile(tau[order], (8, 1, 1)), metadata_json=json.dumps(metadata), **data)
         result[region] = str(path)
     return {'posterior_files': result}
 
@@ -128,13 +130,13 @@ class CorrelationTests(unittest.TestCase):
             folder = Path(temp)
             session = folder/'session'
             session.mkdir()
-            source = session/'spikes.npz'
-            np.savez(source, **spike_data())
+            source = session/'spikes.h5'
+            save_arrays(source, **spike_data())
             before = source.read_bytes()
             sessions = folder/'sessions.txt'
             sessions.write_text(str(session)+'\n')
             for kind in ('spike', 'transition'):
-                spec = {'input': 'spikes.npz', 'preprocessing': 'Synthetic fixture, verified trial order'} if kind == 'spike' else {**save_posteriors(session), 'preprocessing': 'Synthetic independently fitted example', 'posterior_draws': 5}
+                spec = {'input': 'spikes.h5', 'preprocessing': 'Synthetic fixture, verified trial order'} if kind == 'spike' else {**save_posteriors(session), 'preprocessing': 'Synthetic independently fitted example', 'posterior_draws': 5}
                 cfg = folder/f'{kind}.json'
                 cfg.write_text(json.dumps({'defaults': spec}))
                 with contextlib.redirect_stderr(io.StringIO()), contextlib.redirect_stdout(io.StringIO()):
@@ -158,9 +160,9 @@ class CorrelationTests(unittest.TestCase):
             data = spike_data()
             data['spikes'] = data['spikes'].astype(float)
             data['spikes'][0, 0, 0] = np.nan
-            np.savez(folder/'input.npz', **data)
+            save_arrays(folder/'input.h5', **data)
             with self.assertRaisesRegex(ValueError, 'Accepted spikes'):
-                spike.load(folder, {'input': 'input.npz'})
+                spike.load(folder, {'input': 'input.h5'})
             with self.assertRaisesRegex(ValueError, 'outside recorded'):
                 spike.windows({'windows_s': {'bad': [-4, 0]}}, data['time_s'])
 

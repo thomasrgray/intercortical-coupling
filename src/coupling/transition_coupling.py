@@ -1,4 +1,6 @@
 """Correlation of independently fitted GC/PC changepoint posterior modes."""
+
+from coupling.array_store import load_arrays
 import json
 import itertools
 import numpy as np
@@ -12,9 +14,9 @@ def load(session, spec):
     regions = []
     for region in ('GC', 'PC'):
         if region not in spec.get('posterior_files', {}):
-            raise ValueError(f'Missing posterior_files.{region}: fit each region independently and export tau posterior NPZ first')
+            raise ValueError(f'Missing posterior_files.{region}: fit each region independently and export tau posterior HDF5 first')
         path = resolve_path(spec['posterior_files'][region], session)
-        with np.load(path, allow_pickle=False) as archive:
+        with load_arrays(path, allow_pickle=False) as archive:
             data = {k: archive[k] for k in ('tau', 'trial_id', 'stimulus', 'stratum', 'trial_order', 'good_trial')}
             metadata = json.loads(str(archive['metadata_json'].item()))
         tau = data['tau']

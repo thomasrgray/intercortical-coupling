@@ -1,4 +1,6 @@
 """Figure 2: simultaneous sorted spikes, alpha LFP and nasal pressure."""
+
+from coupling.array_store import load_arrays, save_arrays
 import argparse
 import json
 import re
@@ -115,7 +117,7 @@ def run(prepared, audit, output, h5=None, info=None, check=False):
     write_csv(out/'units.csv', [dict(unit_id=int(u), region=r, electrode=int(e)) for u,r,e in zip(units,regions,electrodes)])
     archive = dict(time_s=t, unit_id=units, unit_region=regions)
     retention = []
-    with np.load(Path(prepared)/'cleaned_lfp.npz') as z:
+    with load_arrays(Path(prepared)/'cleaned_lfp.h5') as z:
         channel_ids = z['electrode_id'] if 'electrode_id' in z else np.arange(len(data['region']))
     for number, (stim, channels, js) in enumerate(selections, 1):
         print(f'Figure 2 [{number}/{len(selections)}] {stim}: {len(js)} matched trials', flush=True)
@@ -156,9 +158,9 @@ def run(prepared, audit, output, h5=None, info=None, check=False):
         archive[f'{stim}__alpha_uv'] = alpha
         archive[f'{stim}__spike_counts'] = spikes[:,js]
     archive['rate_time_s'] = t.reshape(-1,50).mean(axis=1)
-    np.savez_compressed(out/'plotted_data.npz', **archive)
+    save_arrays(out/'plotted_data.h5', **archive)
     write_csv(out/'retention.csv',retention)
-    inputs = sources + [Path(prepared)/n for n in ('cleaned_lfp.npz','events.csv','preprocessing.json')] + [Path(audit)/n for n in ('pressure_1khz.npz','events_respiration.csv','respiration_provenance.json')]
+    inputs = sources + [Path(prepared)/n for n in ('cleaned_lfp.h5','events.csv','preprocessing.json')] + [Path(audit)/n for n in ('pressure_1khz.h5','events_respiration.csv','respiration_provenance.json')]
     (out/'provenance.json').write_text(json.dumps(dict(lfp=meta,respiration=resp,
         hashes={str(p.resolve()):fingerprint(p) for p in inputs},
         alpha_hz=[8,12], filter='Butterworth order 4, forward/backward SOS on full -2 to +5 s epochs; display -0.5 to +2.5 s',

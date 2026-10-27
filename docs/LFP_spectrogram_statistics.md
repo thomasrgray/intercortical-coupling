@@ -138,7 +138,7 @@ bin in its outline [3]. No significant cluster is not evidence of equivalence.
   exclusions, per-session approved channel counts and label mappings,
   cluster masses/directions/p values, permutation counts, exact versus
   Monte Carlo status, and smallest attainable family p for each comparison.
-- Eighteen NPZs: paired animal differences, animal IDs, axes, test mask, t maps,
+- Eighteen HDF5s: paired animal differences, animal IDs, axes, test mask, t maps,
   family-corrected cluster p maps, full-display significance masks, and null maxima.
   `t` and `p_family` cover only tested time bins; `animal_difference` and
   `significant` cover the displayed window. Bins outside clusters have p = 1.

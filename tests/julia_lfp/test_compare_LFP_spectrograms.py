@@ -113,7 +113,7 @@ def test_main_integration_ten_figures(monkeypatch, tmp_path):
                                     '--output-dir', str(out)])
     main()
     assert len(list(out.glob('*.png'))) == 10
-    assert len(list(out.glob('*.npz'))) == 18
+    assert len(list(out.glob('*.h5'))) == 18
     report = json.loads((out/'statistics.json').read_text())
     assert all(f['status']=='tested' for f in report['figures'].values())
     assert report['session_audit']['a_TG3_x']['status'] == 'excluded'

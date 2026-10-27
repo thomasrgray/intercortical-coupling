@@ -1,22 +1,22 @@
 # Two-panel sample power figure
 
-Use saved `power/session_power.npz`; no raw processing is repeated.
+Use saved `power/session_power.h5`; no raw processing is repeated.
 
 ```bash
 python -m pip install -e .
-coupling-compare-power "$RUN/power/session_power.npz" results/sample_gc_ia --left GC:IA --right GC:oIA
+coupling-compare-power-legacy "$RUN/power/session_power.h5" results/sample_gc_ia --left GC:IA --right GC:oIA
 ```
 
 For an additional descriptive difference panel:
 
 ```bash
-coupling-compare-power "$RUN/power/session_power.npz" results/sample_gc_ia_difference --left GC:IA --right GC:oIA --difference --difference-clim 1
+coupling-compare-power-legacy "$RUN/power/session_power.h5" results/sample_gc_ia_difference --left GC:IA --right GC:oIA --difference --difference-clim 1
 ```
 
 Compare regions with `--left GC:S --right PC:S`, or the other matched odor pair
 with `--left PC:BA --right PC:oBA`. Labels are case-sensitive. PC is displayed as
 pPC. Each output directory must be new. If `$RUN` is no longer set, replace the
-input argument with the full path to your existing session_power.npz.
+input argument with the full path to your existing session_power.h5.
 
 Outputs: 600 dpi PNG, PDF and SVG (editable text, rasterized heatmaps), numerical
 left/right/difference arrays with contributor counts, provenance JSON and caption.

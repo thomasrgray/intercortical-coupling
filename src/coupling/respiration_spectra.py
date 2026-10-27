@@ -1,4 +1,6 @@
 """DIN-aligned respiration power and channel-wise LFP/pressure coherence."""
+
+from coupling.array_store import load_arrays, save_arrays
 import argparse
 import json
 from pathlib import Path
@@ -66,7 +68,7 @@ def load_inputs(prepared, audit):
             if e[key] != r[key]: raise ValueError('Event identity mismatch: '+key)
         if int(e['onset_sample']) != int(r['ttl_raw_sample']) or int(e['center_lfp_sample']) != int(r['ttl_lfp_sample']):
             raise ValueError('ADC/LFP onset mismatch')
-    with np.load(prepared/'cleaned_lfp.npz', allow_pickle=False) as z:
+    with load_arrays(prepared/'cleaned_lfp.h5', allow_pickle=False) as z:
         if json.loads(str(z['provenance_json'])) != meta:
             raise ValueError('Cleaned archive preprocessing provenance mismatch')
         data = {k:z[k] for k in ('lfp_uv','time_s','event_id','stimulus','region','good_channel','good_trial')}
@@ -77,7 +79,7 @@ def load_inputs(prepared, audit):
         raise ValueError('Cleaned archive event order mismatch')
     if data['good_trial'].shape != lfp.shape[:2] or len(data['region']) != len(lfp) or len(data['good_channel']) != len(lfp):
         raise ValueError('Invalid QC dimensions')
-    with np.load(audit/'pressure_1khz.npz', allow_pickle=False) as z:
+    with load_arrays(audit/'pressure_1khz.h5', allow_pickle=False) as z:
         if float(z['fs_hz']) != FS: raise ValueError('Pressure sample rate mismatch')
         pressure, filtered = z['unfiltered_counts'].astype(float), z['filtered_counts'].astype(float)
     epochs = np.full((len(events), len(t)), np.nan)
@@ -133,7 +135,7 @@ def run(prepared, audit, output, window_s=1., hop_s=.1):
         archive[stim+'__'+kind] = arr
         for fi in np.flatnonzero(band):
             csv_rows.append(dict(stimulus=stim,measure=kind,frequency_hz=float(f[fi]),post_0_2s_mean=float(np.mean(arr[fi,post]))))
-    np.savez_compressed(out/'spectra.npz',**archive)
+    save_arrays(out/'spectra.h5',**archive)
     write_csv(out/'spectra_0_2s.csv',csv_rows)
     for odor, stimuli in PAIRS.items():
         fig, axes = plt.subplots(4,2,figsize=(11,12),layout='constrained',squeeze=False)
@@ -167,7 +169,7 @@ def run(prepared, audit, output, window_s=1., hop_s=.1):
         fig.suptitle(f'{odor}: single-session descriptive spectra | {window_s:g} s windows | pressure polarity: {resp["sign"]}')
         for ext in ('png','pdf'):fig.savefig(out/f'{odor}_respiration_lfp.{ext}',dpi=180)
         plt.close(fig)
-    inputs=[Path(prepared)/n for n in ('preprocessing.json','events.csv','cleaned_lfp.npz')]+[Path(audit)/n for n in ('respiration_provenance.json','events_respiration.csv','pressure_1khz.npz')]
+    inputs=[Path(prepared)/n for n in ('preprocessing.json','events.csv','cleaned_lfp.h5')]+[Path(audit)/n for n in ('respiration_provenance.json','events_respiration.csv','pressure_1khz.h5')]
     (out/'provenance.json').write_text(json.dumps(dict(lfp=meta,respiration=resp,window_s=window_s,hop_s=hop_s,fs_hz=FS,
         hashes={str(p.resolve()):fingerprint(p) for p in inputs},minimum_trials=3,
         estimator='Hann-tapered trial-ensemble cross/auto spectra; magnitude-squared ratio then equal-channel mean',

@@ -3,6 +3,8 @@
 This stage does not perform CAR or certify that an input is clean. The required
 provenance and rejection masks make that upstream responsibility explicit.
 """
+
+from coupling.array_store import load_arrays, save_arrays
 import argparse
 import json
 from pathlib import Path
@@ -108,9 +110,9 @@ def analyze(source, output, clim=3.):
     # Never reuse an output folder: prevents stale plots or silent replacement.
     if output.exists():
         raise FileExistsError(output)
-    with np.load(source, allow_pickle=False) as d:
+    with load_arrays(source, allow_pickle=False) as d:
         provenance = validate(d)
-        voltage = d["lfp_uv"]  # NPZ arrays decompress on access: load once, not per trial.
+        voltage = d["lfp_uv"]  # HDF5 arrays decompress on access: load once, not per trial.
         rows, panels, counts = [], [], []
         grid = None
         for region in REGIONS:
@@ -143,7 +145,7 @@ def analyze(source, output, clim=3.):
         f,t = grid
         output.mkdir(parents=True)
         arrays = np.stack(panels).reshape(2,6,len(f),len(t))
-        np.savez_compressed(output/"session_power.npz", z_power=arrays, frequency_hz=f,time_s=t,
+        save_arrays(output/"session_power.h5", z_power=arrays, frequency_hz=f,time_s=t,
                             region=np.array(REGIONS),stimulus=np.array(STIMULI),
                             n_channels=np.stack(counts).reshape(arrays.shape),
                             session_id=d["session_id"],animal_id=d["animal_id"],
@@ -160,8 +162,8 @@ def analyze(source, output, clim=3.):
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument("cleaned_npz");p.add_argument("output_directory");p.add_argument("--clim",type=float,default=3.)
-    a=p.parse_args();analyze(a.cleaned_npz,a.output_directory,a.clim)
+    p.add_argument("cleaned_arrays");p.add_argument("output_directory");p.add_argument("--clim",type=float,default=3.)
+    a=p.parse_args();analyze(a.cleaned_arrays,a.output_directory,a.clim)
 
 if __name__ == "__main__":
     main()

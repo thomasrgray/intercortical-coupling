@@ -1,4 +1,6 @@
 """Trial-differenced Spearman spike noise correlations (Mahmood-style)."""
+
+from coupling.array_store import is_array_store, load_arrays
 import itertools
 import json
 import numpy as np
@@ -8,8 +10,8 @@ from .correlation import validate_trials, conditions, condition_indices, correla
 
 def load(session, spec):
     source = resolve_path(spec['input'], session) if spec.get('input') else only_file(session, ['*.h5', '*.hdf5'])
-    if source.suffix == '.npz':
-        with np.load(source, allow_pickle=False) as archive:
+    if is_array_store(source):
+        with load_arrays(source, allow_pickle=False) as archive:
             data = {k: archive[k] for k in ('spikes', 'time_s', 'unit_id', 'region', 'good_unit',
                                            'trial_id', 'stimulus', 'stratum', 'trial_order', 'good_trial')}
         sources = [source]
@@ -89,7 +91,7 @@ def load_h5(source, session, spec):
                 strata.extend([f'laser:{d:g}:lag:{l:g}' if d else 'laser:off' for d, l in zip(laser, lag)])
             else:
                 if info.get('laser_params', {}).get('dig_in_nums'):
-                    raise ValueError('Optogenetic session lacks per-trial laser metadata; use reviewed NPZ')
+                    raise ValueError('Optogenetic session lacks per-trial laser metadata; use reviewed HDF5')
                 strata.extend(['laser:off']*len(a))
             arrays.append(a[:, selected])
             labels.extend([label]*len(a))

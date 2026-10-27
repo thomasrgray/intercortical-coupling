@@ -23,7 +23,7 @@ STFT intermediates can be large. Individual commands use `COUPLING_LFP_JOBS`
 | Artifact removal | `coupling-lfp-clean --data-list "$DATA_LIST"` | Each session's `cleaned_LFP_artifacts/` |
 | Spectrograms and pre/post spectra | `coupling-power --data-list "$DATA_LIST" --output-dir "$RUN/session_reports"` | Each session's `LFP_analyses/`; validation JSON in the run |
 | Grand averages | `coupling-lfp-grand-average --data-list "$DATA_LIST" --output-dir "$RUN/grand_average"` | Regional PNG/SVG spectra and spectrograms |
-| Animal-level comparisons | `coupling-compare-power --data-list "$DATA_LIST" --output-dir "$RUN/statistics"` | GC/PC and within-route comparisons, NPZ values, statistical audit |
+| Animal-level comparisons | `coupling-compare-power --data-list "$DATA_LIST" --output-dir "$RUN/statistics"` | GC/PC and within-route comparisons, HDF5 values, statistical audit |
 
 Numbered Python wrappers in this folder expose the same stages. `02_power.py`
 also runs the new session plotting stage. The older `01_prepare.py` remains a
@@ -96,10 +96,14 @@ settings; the source workflow assumes 1 kHz LFPs.
 ## Earlier workflows
 
 `coupling-power` and `coupling-compare-power` now accept session arguments above,
-not the previous positional NPZ arguments. Those older interfaces remain available
+not the previous positional HDF5 arguments. Those older interfaces remain available
 as `coupling-power-legacy` and `coupling-compare-power-legacy`. Existing Python
 modules are retained for respiration, coherence, Figure 2 and legacy Figure 6
 compatibility; they are not used by the new power pipeline. The source migration
 does not replace phase-coherence or respiration analyses. Old `--plot-power`,
 `coupling-lfp-figure`, `coupling-export-figure6`, and power summaries still use
-the legacy NPZ format; do not feed the new STFT pickle to them.
+the legacy HDF5 format; do not feed the new STFT pickle to them.
+
+The [HDF5 workflow guide](../docs/hdf5_workflow.md) documents the repository-wide
+archive migration and the optional `phase` stage using Julia-cleaned trial IDs
+and channel QC. Single-array NPY caches remain supported.

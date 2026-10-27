@@ -1,4 +1,6 @@
 """Read-only TTL/pressure timing audit; physiology labels require verified polarity."""
+
+from coupling.array_store import save_arrays
 import argparse
 import json
 import math
@@ -259,7 +261,7 @@ def audit(session, config_file, output, adc='board-ADC-00.dat', sign='unknown', 
     if cycles:
         write_csv(out/'pressure_cycles.csv',cycles)
     write_csv(out/'din_inventory.csv',inventory_rows)
-    np.savez_compressed(out/'pressure_1khz.npz',unfiltered_counts=unfiltered.astype('float32'),
+    save_arrays(out/'pressure_1khz.h5',unfiltered_counts=unfiltered.astype('float32'),
                         filtered_counts=filtered.astype('float32'),fs_hz=FS)
     freq,psd=welch(unfiltered,fs=FS,nperseg=min(8000,len(unfiltered)))
     band=psd[(freq>=.5)&(freq<=20)]

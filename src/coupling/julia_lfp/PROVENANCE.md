@@ -15,3 +15,9 @@ The orchestrator and archive utility are new. Upstream tests are included.
 
 Existing Parsed_LFP is reused. If absent, the upstream extractor writes derived
 LFP nodes into the session HDF5; this is not a wholly read-only workflow.
+
+Subsequent integration changes: derived statistical archives use versioned HDF5;
+artifact-removal reports retain original trial indices and regional channel QC;
+no-approved-channel sessions error and all-rejected conditions remain empty.
+A phase adapter verifies cleaned values against original indexed trials. These
+QC safeguards deliberately supersede the upstream fallback that restored trials.

@@ -60,3 +60,15 @@ def test_collision_and_deduplication(tmp_path):
     with pytest.raises(FileExistsError):
         archive(pairs, target)
     assert (repo/'results/old.npz').exists()
+
+
+def test_archive_derived_hdf5_but_reject_raw_hdf5(tmp_path):
+    from coupling.array_store import save_arrays
+    import h5py
+    repo, session = fixture_paths(tmp_path)
+    save_arrays(repo/'results/spectra.h5', power=[1, 2, 3])
+    assert plan_archive(repo, [session])
+    with h5py.File(repo/'results/recording.h5', 'w') as h:
+        h.create_group('Parsed_LFP')
+    with pytest.raises(ValueError, match='Recording'):
+        plan_archive(repo, [session])

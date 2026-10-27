@@ -1,4 +1,6 @@
 """Optional paired DIN/pressure-event LFP plots from continuous cached LFPs."""
+
+from coupling.array_store import load_arrays, save_arrays
 import argparse
 import csv
 import hashlib
@@ -186,7 +188,7 @@ def run(prepared, audit, rule_file, output=None, clim=3.):
     for r in tq: original[ids[int(r['electrode_id'])],int(r['event_id'])] = r['accepted']=='True'
     if continuous.shape != (len(channels),int(np.ceil(n/fs*FS))) or din_trials.shape != (len(channels),len(events),7000):
         raise ValueError('Unexpected continuous/trial cache shape')
-    with np.load(audit/'pressure_1khz.npz',allow_pickle=False) as d:
+    with load_arrays(audit/'pressure_1khz.h5',allow_pickle=False) as d:
         if float(d['fs_hz']) != FS: raise ValueError('Pressure cache rate mismatch')
         pressure0 = d['unfiltered_counts'].astype(float)
     if len(pressure0) != continuous.shape[1]: raise ValueError('ADC/LFP resampled lengths differ')
@@ -271,12 +273,12 @@ def run(prepared, audit, rule_file, output=None, clim=3.):
             fig.suptitle(f'{region} / {stim} · matched channel/trial pairs'+(' · PROVISIONAL' if provisional else ''))
             fig.savefig(out/f'{region}_{stim}_paired_power.png',dpi=160);plt.close(fig)
     diagnostics(out,pressure,cycles,rows,provisional,resp['sign'])
-    np.savez_compressed(out/'paired_power.npz',z_power=panels,alignment=['DIN','respiration'],region=REGIONS,stimulus=STIMULI,
+    save_arrays(out/'paired_power.h5',z_power=panels,alignment=['DIN','respiration'],region=REGIONS,stimulus=STIMULI,
                         frequency_hz=f,time_s=grid,n_channels=n_channels)
     try: revision=subprocess.check_output(['git','rev-parse','HEAD'],text=True,cwd=Path(__file__).parent,stderr=subprocess.DEVNULL).strip()
     except (OSError,subprocess.CalledProcessError): revision='unknown'
     provenance=dict(cache_files=[dict(path=str(p),size_bytes=p.stat().st_size,mtime_ns=p.stat().st_mtime_ns) for p in [prepared/'lfp_unreferenced.npy',prepared/'lfp_trials.npy']], rules=rules,revision=revision,provisional=provisional,lfp_preprocessing=meta,respiration_audit=resp,
-        inputs={str(p):fingerprint(p) for p in [prepared/'preprocessing.json',prepared/'events.csv',prepared/'channel_qc.csv',prepared/'trial_qc.csv',audit/'respiration_provenance.json',audit/'pressure_1khz.npz',Path(rule_file)]},
+        inputs={str(p):fingerprint(p) for p in [prepared/'preprocessing.json',prepared/'events.csv',prepared/'channel_qc.csv',prepared/'trial_qc.csv',audit/'respiration_provenance.json',audit/'pressure_1khz.h5',Path(rule_file)]},
         power_settings=SETTINGS,color_limit=clim,channel_counts=valid_counts,
         baseline='Same DIN-relative -1.5 to -0.5 s STFT-center moments for both alignments, per channel/trial/frequency',
         source_clock='Shared raw sample index; validated time.dat; times are seconds from recording start, not wall clock',

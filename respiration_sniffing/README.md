@@ -76,21 +76,21 @@ The parentheses keep settings local to this run; `set -e` stops the sequence if 
 
 ## What a completed run looks like
 
-The supplied TG22 spectra run processed all 64 amplifier files, wrote `prepared/cleaned_lfp.npz`, reported 180 respiration trials with 180 candidate-screen passes, and finished the spectra directory. The separate TG23 sniffing run printed `Processed 180 trials`.
+The supplied TG22 spectra run processed all 64 amplifier files, wrote the prepared LFP archive (NPZ in that historical run; HDF5 on new runs), reported 180 respiration trials with 180 candidate-screen passes, and finished the spectra directory. The separate TG23 sniffing run printed `Processed 180 trials`.
 
 An audit result of `"physiological_timing_trials": 0` is expected with `--inhalation-sign unknown`: the run can produce power and coherence without verified inhale/exhale labels. It does **not** establish physiological breathing validity. Review the pressure waveform and polarity before interpreting candidate timings.
 
 | Directory inside the run | Main results |
 | --- | --- |
 | `sniffing/` | `respiration_by_stimulus.png/pdf`, peak/cycle tables, and provenance |
-| `prepared/` | `cleaned_lfp.npz`, `events.csv`, and `preprocessing.json` |
-| `respiration_audit/` | `pressure_1khz.npz`, `events_respiration.csv`, and `respiration_provenance.json` |
-| `spectra/` | `BA_respiration_lfp.png/pdf`, `IA_respiration_lfp.png/pdf`, `spectra.npz`, and `spectra_0_2s.csv` |
+| `prepared/` | `cleaned_lfp.h5`, `events.csv`, and `preprocessing.json` |
+| `respiration_audit/` | `pressure_1khz.h5`, `events_respiration.csv`, and `respiration_provenance.json` |
+| `spectra/` | `BA_respiration_lfp.png/pdf`, `IA_respiration_lfp.png/pdf`, `spectra.h5`, and `spectra_0_2s.csv` |
 
 For each matched odor, the BA and IA figures contain:
 
 - **A:** first accepted pressure trial, DIN at zero, 200 ms scale bar.
-- **B:** respiration and GC/PC LFP power spectra, unit-area normalized over 0–12 Hz for shape comparisons. Raw PSD density remains in `spectra.npz`.
+- **B:** respiration and GC/PC LFP power spectra, unit-area normalized over 0–12 Hz for shape comparisons. Raw PSD density remains in `spectra.h5`.
 - **C:** GC and PC LFP–respiration magnitude-squared coherence heatmaps with a shared 0–1 scale. These estimate pressure–LFP coherence, distinct from GC–PC coherence.
 
 ## Troubleshooting the command block
@@ -132,7 +132,7 @@ Adapted conceptually from [Dewan Lab sniffing](https://github.com/OlfactoryBehav
 
 The spectra stage reads the prepared and audit files listed above. It validates clock, source, original DIN/trial identity, onset sample, archive order and source-file freshness before combining signals. No raw recordings are distributed in this repository; run this on local session files.
 
-All six stimuli are processed separately and exported to `spectra.npz` and
+All six stimuli are processed separately and exported to `spectra.h5` and
 `spectra_0_2s.csv` when eligible, including sucrose and blank controls. Plots keep
 BA and IA separate; they do not pool distinct odors into a route average.
 CSV summaries average window centers from 0 to 2 s; windows at zero straddle

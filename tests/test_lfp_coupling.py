@@ -1,3 +1,5 @@
+
+from coupling.array_store import load_arrays, save_arrays
 import json
 from pathlib import Path
 import tempfile
@@ -71,20 +73,20 @@ class CouplingTests(unittest.TestCase):
             x=rng.normal(size=(3,18,len(t)))
             good=np.ones((3,18),bool);good[1,:3]=False
             x[1,:3]=np.nan;x[2]=np.nan
-            np.savez(p/'input.npz',lfp_uv=x,time_s=t,electrode_id=[2,7,99],region=['GC','PC','GC'],
+            save_arrays(p/'input.h5',lfp_uv=x,time_s=t,electrode_id=[2,7,99],region=['GC','PC','GC'],
                 good_channel=np.array([True,True,False]),good_trial=good,stimulus=np.repeat(STIMULI,3),
                 event_id=np.arange(18)+100,animal_id='SYNTHETIC',session_id='SYNTHETIC',
                 provenance_json=json.dumps(dict(source='synthetic',reference='none',filtering='none',qc_method='test',event_alignment='TTL')))
             with patch('coupling.lfp_coupling.save_fig'):
-                analyze(p/'input.npz',p/'out',min_trials=3,orders=(1,2))
+                analyze(p/'input.h5',p/'out',min_trials=3,orders=(1,2))
             import matplotlib.pyplot as plt
             plt.close('all')
-            with np.load(p/'out/plotted_values.npz') as d:
+            with load_arrays(p/'out/plotted_values.h5') as d:
                 self.assertTrue(np.isnan(d['coherence'][:,0]).all())
                 self.assertTrue(np.isnan(d['coherence_route_difference'][0]).all())
                 self.assertEqual(d['electrode_pairs'].tolist(),[[2,7]])
                 self.assertEqual(d['event_id'][0],100)
                 self.assertTrue(np.isfinite(d['coherence'][:,1:]).all())
-            with self.assertRaises(FileExistsError):analyze(p/'input.npz',p/'out')
+            with self.assertRaises(FileExistsError):analyze(p/'input.h5',p/'out')
 
 if __name__=='__main__':unittest.main()
