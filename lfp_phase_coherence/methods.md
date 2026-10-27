@@ -51,7 +51,7 @@ check. Any failed session yields a nonzero exit status; other sessions still run
 | Parsed LFP | `/Parsed_LFP/dig_in_N_LFPs`: **channel × trial × sample**. `/Parsed_LFP_channels`: physical electrode IDs in the exact row order. Row 32 is not automatically electrode 32. |
 | Eligible electrodes | `/unit_descriptor/electrode_number`, restricted to `single_unit` if present, or explicit reviewed `eligible_electrode_ids`. The presence of parsed LFP alone does not establish paper-style channel eligibility. |
 | Existing STFT/coherence cache | Source `/stft` is never reused or modified; this avoids stale parameters, missing phase nodes, and the reference loader's implicit writes. STFT is recalculated from parsed LFP. |
-| Alternative input | Explicit path to this project's `cleaned_lfp.npz`, even when stored under a previous batch's `results/<session>/prepared/`. The session list still names original session folders. |
+| Alternative input | Explicit path to this project's `cleaned_lfp.h5`, even when stored under a previous batch's `results/<session>/prepared/`. The session list still names original session folders. |
 | Run output | The CLI output path (relative to shell working directory), required to be outside all listed session folders. |
 | Per-session output | `<output>/<session-basename>-<path-hash>/`; identical basenames on different drives cannot collide. |
 
@@ -75,7 +75,7 @@ from the TXT list is an error (catches stale/mistyped paths).
   "sessions": {
     "/media/thomas/Data/TG22/Feb2_OrthoRetro_TG22_260202_170014": {
       "animal_id": "TG22",
-      "input": "/home/thomas/intercortical-coupling/results/batch_01/Feb2_OrthoRetro_TG22_260202_170014/prepared/cleaned_lfp.npz"
+      "input": "/home/thomas/intercortical-coupling/results/batch_01/Feb2_OrthoRetro_TG22_260202_170014/prepared/cleaned_lfp.h5"
     }
   }
 }
@@ -85,13 +85,13 @@ For HDF5, keep the example defaults and override `input`, `info`, `region_keys`,
 `stimulus_by_din`, `onset_s` or eligibility separately for sessions that differ.
 `region_keys` uses exact keys, e.g. `{"GC":"gc","PC":"pc"}`; specify `pp` or
 `pPC` only if that is the actual key. Unmapped or multiply mapped electrodes fail.
-NPZ uses its embedded mapping/time vector/QC/provenance instead of these HDF5
-settings. Existing NPZ validation requires this project's six named conditions.
+HDF5 uses its embedded mapping/time vector/QC/provenance instead of these HDF5
+settings. Existing HDF5 validation requires this project's six named conditions.
 
 If a folder contains only `amp-*.dat`, `board-DIN-*.dat`, `.info` and layout CSVs,
 it is a **raw recording**, not a parsed HDF5 input. Either perform the established
 blech_clust LFP extraction first, or run the existing `coupling-prepare` and point
-the config at its returned `cleaned_lfp.npz` path. Do not rename raw files to HDF5.
+the config at its returned `cleaned_lfp.h5` path. Do not rename raw files to HDF5.
 The legacy preparer applies its own QC/reference/filtering: that is not an exact
 reproduction of the paper's second-order 1–300 Hz extraction. Record differences;
 this workflow cannot undo a previously applied CAR, notch or high-pass filter.
@@ -138,7 +138,7 @@ correction. PLV has finite-sample bias; unequal condition counts remain reported
 and require trial-count sensitivity analysis before inferential route claims.
 A representative channel is fixed per region for the whole analysis. At least
 two eligible channels per region are required for the intra-region controls.
-For NPZ input, events must pass QC on **all eligible channels** before channel
+For HDF5 input, events must pass QC on **all eligible channels** before channel
 selection; no rejected event is reintroduced. HDF5 input assumes parsed trials
 have already been reviewed; it does not invent artifact rejection or laser masks.
 If optogenetic conditions must be separated, prepare separate reviewed inputs.
@@ -169,7 +169,7 @@ For DIN-triggered HDF5 epochs, confirm the extraction convention and set
 `"event_alignment": "stimulus DIN onset"` (as in the example config). The axis
 then says **Time from stimulus DIN onset (s)**. Older HDF5 configs without this
 field retain an explicit "declared parsed-trial event" label rather than guessing.
-For NPZ, the embedded `event_alignment` and `time_s` are authoritative; config
+For HDF5, the embedded `event_alignment` and `time_s` are authoritative; config
 cannot silently relabel an inhalation-aligned input as stimulus-aligned.
 The existing preparer's first-high TTL metadata is displayed as stimulus DIN onset.
 
@@ -187,19 +187,19 @@ that it is truly prestimulus for realigned epochs.
   with the original scripts after updating their hard-coded list location.
 - `status.json`: success/failure, actual input path, retained trial counts,
   eligible physical IDs, animal labels and output locations.
-- Each session: `phase_coherence.npz` (frequency-time observed coherence, band
+- Each session: `phase_coherence.h5` (frequency-time observed coherence, band
   bootstrap/shuffle/intra draws, baseline limits/deviations, selected physical
   IDs, event/stimulus labels); PNG/SVG phase curves and descriptive power context;
   `provenance.json` (input SHA256, source paths, preprocessing declaration,
   reference commit, implementation/module hash, seed and settings).
 - `conditions.json`: stimulus/route counts, skipped conditions, route membership,
   weighting, per-condition seeds and relative output directories.
-- `conditions/<label>-<hash>/`: separate coherence NPZ, band figure and GC/PC power
+- `conditions/<label>-<hash>/`: separate coherence HDF5, band figure and GC/PC power
   context PNG/SVG for each individual stimulus and each available route.
 - `ortho_vs_retro.png/.svg`: matched-odor and combined-route comparisons across bands;
-  `ortho_vs_retro.npz` stores ortho-minus-retro bootstrap draws by band and time.
+  `ortho_vs_retro.h5` stores ortho-minus-retro bootstrap draws by band and time.
 - Run-level `conditions/<label>-<hash>/`: corresponding all-session aggregates.
-- `aggregate.npz` and `all_sessions.png/.svg`: each completed session's band curves,
+- `aggregate.h5` and `all_sessions.png/.svg`: each completed session's band curves,
   baseline-deviation map and fraction of sessions deviating. No silent resampling
   occurs: mismatched time grids stop aggregate generation while preserving
   individual outputs. Failed sessions remain recorded and are excluded.
@@ -217,7 +217,7 @@ flowchart TD
     list["Session TXT and per-session config"] --> resolve["Resolve source and metadata paths"]
     resolve --> inputs{"Input format"}
     inputs -->|HDF5| parsed["Parsed LFP and physical electrode mapping"]
-    inputs -->|NPZ| clean["Cleaned epochs and existing QC masks"]
+    inputs -->|HDF5| clean["Cleaned epochs and existing QC masks"]
     parsed --> verify["Validate sampling, alignment and eligibility"]
     clean --> verify
     verify --> phase["STFT and fixed representative electrodes"]

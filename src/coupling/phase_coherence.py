@@ -3,6 +3,8 @@
 Independent implementation of the estimator in updated/lfp_coherence_aggregate.py.
 See docs/mahmood_phase_coherence.md for paper/code differences and input contracts.
 """
+
+from coupling.array_store import is_array_store, load_arrays, save_arrays
 import argparse
 import hashlib
 import json
@@ -163,9 +165,9 @@ def load_h5(source, session, spec):
                             'event_alignment': spec.get('event_alignment', 'declared parsed-trial event')})
 
 
-def load_npz(source):
+def load_prepared(source):
     from .power import validate
-    with np.load(source, allow_pickle=False) as d:
+    with load_arrays(source, allow_pickle=False) as d:
         provenance = validate(d)
         result = {key: d[key] for key in ('time_s', 'electrode_id', 'region', 'stimulus', 'good_channel', 'good_trial')}
         result.update(x=d['lfp_uv'], event_id=d['event_id'] if 'event_id' in d.files else np.arange(d['lfp_uv'].shape[1]),
@@ -175,8 +177,13 @@ def load_npz(source):
 
 def load_input(session, spec):
     source = resolve_path(spec['input'], session) if spec.get('input') else only_file(session, ['*.h5', '*.hdf5'])
-    if source.suffix == '.npz':
-        data = load_npz(source)
+    if spec.get('input_backend') == 'julia':
+        if spec.get('input'):
+            raise ValueError('Julia backend uses session HDF5; omit input overrides')
+        from .julia_lfp.session import load_phase_session
+        data = load_phase_session(session, spec)
+    elif is_array_store(source):
+        data = load_prepared(source)
     else:
         data = load_h5(source, session, spec)
     x, t = data['x'], data['time_s']
@@ -425,7 +432,7 @@ def plot_comparisons(results, folder, title, xlabel):
                 ax.set_xlabel(xlabel)
     fig.suptitle('GC–PC phase coherence; pointwise 95% bootstrap intervals (descriptive)')
     save_figure(fig, folder/'ortho_vs_retro')
-    np.savez_compressed(folder/'ortho_vs_retro.npz', **exports)
+    save_arrays(folder/'ortho_vs_retro.h5', **exports)
 
 
 def analyze_conditions(phase, powers, labels, event_ids, ids, selected, intra,
@@ -461,7 +468,7 @@ def analyze_conditions(phase, powers, labels, event_ids, ids, selected, intra,
         metadata[label]['directory'] = str(target.relative_to(folder))
         result.update(alignment_label=xlabel, trial_mean_stft_power=powers[label], phase_channel_electrode_id=ids,
                       selected_electrode_id=ids[selected], intra_electrode_id=ids[intra])
-        np.savez_compressed(target/'phase_coherence.npz', **result)
+        save_arrays(target/'phase_coherence.h5', **result)
         description = label + ('; equal odor mean' if label in ('ortho', 'retro') else '')
         stage(f'Exporting figures: {label}')
         plot_session(result, powers[label], target, title+'; '+description, xlabel)
@@ -504,7 +511,7 @@ def aggregate(summaries, out, condition='all stimuli pooled'):
             raise ValueError('Session time grids differ: per-session outputs saved; no invalid aggregate produced')
     dev = np.stack([r['deviation'] for r in summaries])
     means = np.stack([r['mean'] for r in summaries])
-    np.savez_compressed(out/'aggregate.npz', deviation=dev, mean_coherence=means,
+    save_arrays(out/'aggregate.h5', deviation=dev, mean_coherence=means,
                         session=np.array([r['session'] for r in summaries]), time_s=first['time_s'], band=first['band'],
                         condition=condition, alignment_label=first.get('xlabel', 'Time from alignment (s)'))
     fig, axes = plt.subplots(3, len(first['band']), figsize=(18, 9), squeeze=False)
@@ -517,7 +524,7 @@ def aggregate(summaries, out, condition='all stimuli pooled'):
         if i == len(first['band'])-1:
             bar = fig.colorbar(mesh, ax=axes[0, i], ticks=[-1,0,1])
             bar.ax.set_yticklabels(['Decrease','No change','Increase'])
-        axes[0, i].set(title=name, ylabel='Session row (see aggregate.npz)')
+        axes[0, i].set(title=name, ylabel='Session row (see aggregate.h5)')
         axes[1, i].plot(t, (dev[:, i] != 0).mean(axis=0), color='black')
         axes[1, i].set(ylabel='Fraction with baseline deviation', ylim=(-.03, 1.03))
         axes[2, i].plot(t, means[:, i].T, alpha=.3)
@@ -564,7 +571,7 @@ def run(list_path, config_path, output, check=False, profile='repository', n_boo
                 ids = data['electrode_id'][data['channels']][used]
                 result.update(trial_mean_stft_power=powers, phase_channel_electrode_id=ids, selected_electrode_id=ids[result['selected_indices']], intra_electrode_id=ids[result['intra_indices']],
                               accepted_event_id=data['event_id'][data['good']], stimulus=data['stimulus'][data['good']])
-                np.savez_compressed(folder/'phase_coherence.npz', **result)
+                save_arrays(folder/'phase_coherence.h5', **result)
                 xlabel = alignment_label(data['provenance'])
                 stage('Exporting pooled figures')
                 plot_session(result, powers, folder, session.name+'; all stimuli pooled', xlabel)

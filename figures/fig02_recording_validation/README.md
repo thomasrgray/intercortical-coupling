@@ -43,8 +43,8 @@ session-local filenames with `--h5 session.h5 --info session.info`.
 | --- | --- | --- |
 | Sorted spikes | Session `*.h5`/`*.hdf5`, `/sorted_units/unitNNN/times` | Absolute raw acquisition sample indices |
 | Unit assignment | HDF5 `/unit_descriptor` and session `*.info` → `electrode_layout.gc`/`.pc` | Descriptor row matches numeric unit ID; retain `single_unit` flags |
-| LFP | `prepared/cleaned_lfp.npz` | Existing filtering, within-region reference and channel/trial QC |
-| Pressure | `respiration_audit/pressure_1khz.npz` | Existing 0.5–20 Hz filtered counts |
+| LFP | `prepared/cleaned_lfp.h5` | Existing filtering, within-region reference and channel/trial QC |
+| Pressure | `respiration_audit/pressure_1khz.h5` | Existing 0.5–20 Hz filtered counts |
 | Event clock | `prepared/events.csv`, audited respiration events and provenance | DIN identity, onset and rounded 1 kHz epoch center |
 
 Verified against upstream [blech_make_arrays.py](https://github.com/katzlabbrandeis/blech_clust/blob/master/blech_make_arrays.py)
@@ -87,7 +87,7 @@ electrode need not carry the displayed units.
 stimuli with no shared trials are recorded but have no figure.
 `units.csv` lists retained unit IDs and electrode/region assignments.
 `pressure_trial_qc.csv` preserves pressure exclusions.
-`plotted_data.npz` contains the time axes, event IDs, pressure, alpha traces,
+`plotted_data.h5` contains the time axes, event IDs, pressure, alpha traces,
 spike counts, and trial-level population rates. `provenance.json` records source
 hashes, inherited processing, selection/filtering rules and limitations.
 

@@ -1,3 +1,5 @@
+
+from coupling.array_store import load_arrays, save_arrays
 import json
 import tempfile
 import unittest
@@ -57,14 +59,14 @@ class Figure2Tests(unittest.TestCase):
             re=[dict(event_id=0,din=0,stimulus='BA',original_trial_index=0,ttl_raw_sample=300001,ttl_lfp_sample=10000,timing_qc_reasons='')]
             write_csv(audit/'events_respiration.csv',re)
             pressure=np.sin(2*np.pi*4*np.arange(20000)/1000)
-            np.savez(audit/'pressure_1khz.npz',fs_hz=1000,unfiltered_counts=pressure,filtered_counts=pressure)
+            save_arrays(audit/'pressure_1khz.h5',fs_hz=1000,unfiltered_counts=pressure,filtered_counts=pressure)
             lfp=np.stack([np.sin(2*np.pi*10*t),np.cos(2*np.pi*10*t)])[:,None,:]
-            np.savez(prep/'cleaned_lfp.npz',provenance_json=json.dumps(meta),lfp_uv=lfp,time_s=t,event_id=[0],stimulus=['BA'],region=['GC','PC'],good_channel=[True,True],good_trial=np.ones((2,1),bool),electrode_id=[1,2])
+            save_arrays(prep/'cleaned_lfp.h5',provenance_json=json.dumps(meta),lfp_uv=lfp,time_s=t,event_id=[0],stimulus=['BA'],region=['GC','PC'],good_channel=[True,True],good_trial=np.ones((2,1),bool),electrode_id=[1,2])
             run(prep,audit,root/'check',check=True)
             self.assertFalse((root/'check').exists())
             out=run(prep,audit,root/'out')
             self.assertTrue((out/'01_figure2.pdf').exists())
-            with np.load(out/'plotted_data.npz') as z:
+            with load_arrays(out/'plotted_data.h5') as z:
                 self.assertEqual(z['BA__spike_counts'][0,0,2000],2)
                 self.assertAlmostEqual(z['BA__GC_rate_hz'][0,40],40)
             re[0]['ttl_raw_sample']=300002

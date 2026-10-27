@@ -1,4 +1,6 @@
 """Parity checks against small direct translations of reference formulas."""
+
+from coupling.array_store import load_arrays, save_arrays
 import contextlib
 import io
 import json
@@ -70,12 +72,12 @@ class RepositoryTests(unittest.TestCase):
             folder = Path(temp)
             spec = save_posteriors(folder)
             for path in spec['posterior_files'].values():
-                with np.load(path) as z:
+                with load_arrays(path) as z:
                     values = {k:z[k] for k in z.files}
                 # Three transitions/four states, with explicit two-stimulus labels.
                 values['tau'] = np.concatenate([values['tau'], np.full((8,24,1),39.9)],axis=-1)
                 values['stimulus'] = np.array(['BA' if int(v[5:])<12 else 'oBA' for v in values['trial_id']])
-                np.savez(path, **values)
+                save_arrays(path, **values)
             data = load_transitions(folder, spec)
             with contextlib.redirect_stderr(io.StringIO()):
                 rows, _ = repo.transition_analyze(data, {}, 50, 0)
@@ -111,11 +113,11 @@ class RepositoryTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             folder=Path(temp);session=folder/'session';session.mkdir()
             rng=np.random.default_rng(2)
-            np.savez(session/'spikes.npz', spikes=rng.poisson(.01,(24,2,4000)),
+            save_arrays(session/'spikes.h5', spikes=rng.poisson(.01,(24,2,4000)),
                      time_s=np.arange(4000)/1000-2,unit_id=np.arange(2),region=np.array(['GC','PC']),
                      good_unit=np.ones(2,bool),**trial_data())
             (folder/'list.txt').write_text(str(session)+'\n')
-            (folder/'config.json').write_text(json.dumps({'defaults': {'input':'spikes.npz','preprocessing':'synthetic',
+            (folder/'config.json').write_text(json.dumps({'defaults': {'input':'spikes.h5','preprocessing':'synthetic',
                  'windows_s':{'baseline':[-2,0]},'detrend':'none','single_units_only':True}}))
             with contextlib.redirect_stderr(io.StringIO()),contextlib.redirect_stdout(io.StringIO()):
                 run('spike', folder/'list.txt', folder/'config.json', folder/'out', 20)

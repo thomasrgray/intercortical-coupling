@@ -14,7 +14,7 @@ coupling-summarize-lfp \
 `LFP_RUN` is the existing raw-to-phase run directory from the batch instructions.
 If opening a new terminal, set it to that actual directory first. The phase run
 must contain status.json and its completed session output folders. Power discovery
-recursively finds session_power.npz under one run root. Do not use the whole results/
+recursively finds session_power.h5 under one run root. Do not use the whole results/
 directory: duplicate runs of the same animal/session are rejected.
 
 You can supply only --phase-run or only --power-root. The script entry point is

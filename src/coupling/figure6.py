@@ -1,4 +1,6 @@
 """Export compact Figure 6 panels from completed analyses, without recomputation."""
+
+from coupling.array_store import load_arrays, save_arrays
 import argparse
 import hashlib
 import json
@@ -18,8 +20,8 @@ COLORS = {'ortho': '#0072B2', 'retro': '#D55E00'}
 PAIRS = (('BA', 'oBA', 'BA'), ('IA', 'oIA', 'IA'), ('route', 'ortho', 'retro'))
 
 
-def read_npz(path):
-    with np.load(path, allow_pickle=False) as data:
+def read_arrays(path):
+    with load_arrays(path, allow_pickle=False) as data:
         return {key: data[key] for key in data.files}
 
 
@@ -67,10 +69,10 @@ def phase_panels(source, folder, sources):
         row = metadata.get(label, {})
         if row.get('status') != 'completed':
             continue
-        path = (source/row['directory']/'phase_coherence.npz').resolve()
+        path = (source/row['directory']/'phase_coherence.h5').resolve()
         if source not in path.parents:
             raise ValueError('Condition directory escapes the session output')
-        r = read_npz(path)
+        r = read_arrays(path)
         t, f = grid(r)
         draws = r['bootstrap_band']
         if draws.ndim != 3 or draws.shape[0] < 2 or draws.shape[1:] != (len(r['band']), len(t)):
@@ -109,7 +111,7 @@ def phase_panels(source, folder, sources):
             ax.set(title=f'{name} · {band}', xlabel=xlabel, ylabel='Phase coherence', ylim=(0, 1))
             ax.legend(frameon=False, fontsize=6)
             save(fig, folder, f'phase_{name}_band_{i}')
-        np.savez_compressed(folder/f'phase_{name}_values.npz', **values)
+        save_arrays(folder/f'phase_{name}_values.h5', **values)
     return {'matched_comparisons': [x[0] for x in available],
             'omitted_comparisons': [x[0] for x in PAIRS if x not in available],
             'interval': 'Pointwise 95% within-session bootstrap percentile interval; descriptive, not a route significance test',
@@ -117,7 +119,7 @@ def phase_panels(source, folder, sources):
 
 
 def power_panels(source, folder, sources):
-    r = read_npz(source)
+    r = read_arrays(source)
     t, f = grid(r)
     regions, stimuli = r['region'].tolist(), r['stimulus'].tolist()
     z = r['z_power']
@@ -145,7 +147,7 @@ def power_panels(source, folder, sources):
                     raise ValueError(f'No finite power for {region}/{label}')
                 heatmap(panel, t, f, folder, f'power_{region}_{name}_{route}',
                         f'{region} · {name} · {route}', 'Power (baseline z)', xlabel, (-3, 3), 'RdBu_r')
-    np.savez_compressed(folder/'power_values.npz', **r)
+    save_arrays(folder/'power_values.h5', **r)
     return {'normalization': 'Per-trial prestimulus power z-score; equal trials within channel, then equal channels',
             'color_limits': [-3, 3], 'missing_values': 'NaN remains blank; no zero imputation', 'alignment': event}
 
@@ -156,7 +158,7 @@ def export(output, phase_session=None, power=None):
     if output.exists():
         raise FileExistsError(output)
     if phase_session is None and power is None:
-        raise ValueError('Supply a phase session and/or session_power.npz')
+        raise ValueError('Supply a phase session and/or session_power.h5')
     output.parent.mkdir(parents=True, exist_ok=True)
     sources, metadata = [], {'schema_version': 1, 'scope': 'Single-session descriptive panels',
                             'style': 'Compact editable panels inspired by Mahmood 2023; not journal certification'}
@@ -185,7 +187,7 @@ def export(output, phase_session=None, power=None):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--phase-session', type=Path, help='One completed session folder containing conditions.json')
-    parser.add_argument('--power', type=Path, help='Completed session_power.npz (with sibling provenance.json)')
+    parser.add_argument('--power', type=Path, help='Completed session_power.h5 (with sibling provenance.json)')
     parser.add_argument('--output', type=Path, default=DEFAULT_OUTPUT, help='New export directory; never overwritten')
     args = parser.parse_args()
     print(export(args.output, args.phase_session, args.power))

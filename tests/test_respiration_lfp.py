@@ -1,3 +1,5 @@
+
+from coupling.array_store import load_arrays
 import json
 import struct
 import tempfile
@@ -86,7 +88,7 @@ class AlignmentTests(unittest.TestCase):
             result=json.loads((out/'provenance.json').read_text())
             self.assertTrue(result['provisional']);self.assertEqual(result['retained_trials'],6)
             self.assertEqual(len(list(out.glob('*paired_power.png'))),12)
-            with np.load(out/'paired_power.npz') as d:
+            with load_arrays(out/'paired_power.h5') as d:
                 self.assertTrue(np.isnan(d['z_power'][:,0,2]).all()) # S excluded in GC only
                 self.assertEqual(d['z_power'].shape[:3],(2,2,6))
             with self.assertRaises(FileExistsError):run(prep,root/'audit',path)

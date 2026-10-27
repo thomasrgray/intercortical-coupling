@@ -11,7 +11,7 @@ and [power workflow](../../lfp_power/README.md).
 
 | Input | Clean panels |
 | --- | --- |
-| `session_power.npz` + sibling `provenance.json` | GC/PC × BA/IA × ortho/retro baseline-z power spectrograms |
+| `session_power.h5` + sibling `provenance.json` | GC/PC × BA/IA × ortho/retro baseline-z power spectrograms |
 | Completed phase session with `conditions.json` | Matched-odor and equal-odor route coherence maps, ortho-minus-retro maps, band traces with pointwise 95% bootstrap intervals |
 
 Each panel is saved as editable-text SVG, embedded-font PDF and 300 dpi PNG.

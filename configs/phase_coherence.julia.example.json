@@ -1,0 +1,8 @@
+{
+  "defaults": {
+    "input_backend": "julia",
+    "event_alignment": "stimulus DIN onset",
+    "preprocessing": "REPLACE_ME: confirm the actual filtering, referencing, sampling and epoch extraction used for this session's Parsed_LFP"
+  },
+  "sessions": {}
+}

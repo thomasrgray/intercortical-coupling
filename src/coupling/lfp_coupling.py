@@ -2,6 +2,8 @@
 
 Electrode pairs and trials are technical observations, not biological replicates.
 """
+
+from coupling.array_store import load_arrays, save_arrays
 import argparse
 import csv
 import hashlib
@@ -175,7 +177,7 @@ def analyze(source, output, max_channels=5, min_trials=5, matched_pairs=None,
     pairs = DEFAULT_PAIRS if matched_pairs is None else matched_pairs
     if not pairs or any(len(p) != 2 or p[0] not in STIMULI or p[1] not in STIMULI or p[0] == p[1] for p in pairs):
         raise ValueError('Matched pairs must be explicit [retro, ortho] stimulus names')
-    with np.load(source, allow_pickle=False) as d:
+    with load_arrays(source, allow_pickle=False) as d:
         provenance = validate(d)
         data = {k: d[k] for k in d.files}
     x, t = data['lfp_uv'], data['time_s']
@@ -250,7 +252,7 @@ def analyze(source, output, max_channels=5, min_trials=5, matched_pairs=None,
     save_csv(out/'retention.csv', retention)
     save_csv(out/'pair_event_qc.csv', rows)
     save_csv(out/'granger_diagnostics.csv', diagnostics)
-    np.savez_compressed(out/'plotted_values.npz', frequency_hz=f, granger_frequency_hz=gf,
+    save_arrays(out/'plotted_values.h5', frequency_hz=f, granger_frequency_hz=gf,
         power_uv2_per_hz=power, coherence=coh, trial_shift_coherence=shuffled, granger=gc,
         coherence_route_difference=cdelta, coherence_route_pair_counts=cn,
         granger_route_difference=gdelta, granger_route_pair_counts=gn,
@@ -263,7 +265,7 @@ def analyze(source, output, max_channels=5, min_trials=5, matched_pairs=None,
     if 'synthetic' in json.dumps(provenance).lower(): title = 'SYNTHETIC VALIDATION — ' + title
     fig, axes = plt.subplots(2, 2, figsize=(13, 8))
     axes[0, 0].imshow(accepted, aspect='auto', interpolation='nearest', cmap='Greys', vmin=0, vmax=1)
-    axes[0, 0].set(title='A | Accepted channel-events (black)', xlabel='Event position (IDs in NPZ/CSV)', ylabel='Channel position')
+    axes[0, 0].set(title='A | Accepted channel-events (black)', xlabel='Event position (IDs in HDF5/CSV)', ylabel='Channel position')
     for r in REGIONS:
         counts = [sum(row['accepted_trials'] for row in retention if row['region']==r and row['stimulus']==s) for s in STIMULI]
         axes[0, 1].plot(STIMULI, counts, 'o-', label=r)
@@ -294,7 +296,7 @@ def analyze(source, output, max_channels=5, min_trials=5, matched_pairs=None,
     else:
         axes[1, 1].text(.03,.5,'Filter response not reconstructed:\n'+str(filtering),wrap=True,transform=axes[1,1].transAxes)
         axes[1, 1].set_axis_off()
-    np.savez_compressed(out/'reference_filter_diagnostics.npz', **diagnostic_values)
+    save_arrays(out/'reference_filter_diagnostics.h5', **diagnostic_values)
     fig.suptitle(title); save_fig(fig,out,'A_qc')
     fig, axes = plt.subplots(2,6,figsize=(18,6),sharex=True,sharey=True)
     for ri, r in enumerate(REGIONS):
@@ -358,14 +360,14 @@ def analyze(source, output, max_channels=5, min_trials=5, matched_pairs=None,
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('cleaned_npz');p.add_argument('output_directory')
+    p.add_argument('cleaned_arrays');p.add_argument('output_directory')
     p.add_argument('--max-channels',type=int,default=5)
     p.add_argument('--min-trials',type=int,default=5)
     p.add_argument('--config',type=Path,help='JSON with matched_pairs and optional orders')
     p.add_argument('--remove-evoked',action='store_true',help='Sensitivity run: subtract within-stimulus trial mean waveform')
     args=p.parse_args()
     cfg=json.loads(args.config.read_text()) if args.config else {}
-    analyze(args.cleaned_npz,args.output_directory,args.max_channels,args.min_trials,
+    analyze(args.cleaned_arrays,args.output_directory,args.max_channels,args.min_trials,
             cfg.get('matched_pairs'),tuple(cfg.get('orders',[2,5,10,15,20])),args.remove_evoked)
 
 if __name__=='__main__': main()

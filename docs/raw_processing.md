@@ -72,9 +72,9 @@ saved separately. Channel QC is not silently re-optimized after CAR.
 
 DIN inventory/count plot; channels.csv; events.csv; channel_qc.csv and metric plot;
 trial_qc.csv and retention plot; representative accepted traces; preprocessing.json;
-lfp_unreferenced.npy; lfp_trials.npy; cleaned_lfp.npz. Original recordings are never
+lfp_unreferenced.npy; lfp_trials.npy; cleaned_lfp.h5. Original recordings are never
 opened for writing. Archives duplicate some disk-backed arrays for convenient
-plotting; reserve several GB per full session. NPZ plotting loads the trial tensor
+plotting; reserve several GB per full session. HDF5 plotting loads the trial tensor
 into RAM once; approximately 323 MB at 64 × 180 × 7000 float32 samples, plus overhead.
 Source file sizes/mtimes and source path are logged, not full raw-data content hashes.
 

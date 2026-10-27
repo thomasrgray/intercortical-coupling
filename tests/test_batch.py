@@ -101,7 +101,7 @@ class BatchTests(unittest.TestCase):
             m.write_text(json.dumps(dict(version=1,sessions=sessions)))
             def fake_prepare(source,config,out):
                 if Path(source).name=='a': raise ValueError('intentional test failure')
-                out.mkdir();return out/'cleaned_lfp.npz'
+                out.mkdir();return out/'cleaned_lfp.h5'
             def fake_analyze(source,out,**kw):
                 out.mkdir();(out/'retention.csv').write_text('accepted_trials\n3\n')
                 (out/'granger_diagnostics.csv').write_text('passed\nTrue\nFalse\n')

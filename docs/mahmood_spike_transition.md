@@ -93,12 +93,12 @@ Arrays in each DIN must retain chronological order; generated IDs are
 `DIN0:trial0`, etc. Different DINs are never differenced together.
 
 HDF5 loading starts with all parsed trials accepted. For artifact masks or additional
-nuisance strata, export the NPZ contract below. Nonfinite accepted data fails; silent
+nuisance strata, export the HDF5 contract below. Nonfinite accepted data fails; silent
 neurons produce a `constant` result rather than a fabricated zero correlation.
 
-### Reviewed spike NPZ alternative
+### Reviewed spike HDF5 alternative
 
-Set `"input": "reviewed_spikes.npz"`. Required arrays (no Python objects/pickles):
+Set `"input": "reviewed_spikes.h5"`. Required arrays (no Python objects/pickles):
 
 | Key | Shape / interpretation |
 |---|---|
@@ -123,7 +123,7 @@ convergence. Independently fit the GC and PC populations first. The original ana
 also loads existing fits. Do not align both regions to a shared inferred transition,
 and do not use correlation strength to choose the number of states.
 
-Export one NPZ per region with `tau` shaped **posterior draw × trial × transition**
+Export one HDF5 per region with `tau` shaped **posterior draw × trial × transition**
 in nonnegative **bin coordinates relative to fit start**. Export `trial_id`, `stimulus`,
 `stratum`, `trial_order`, and `good_trial` as above. Both regions must contain exactly
 the same trial IDs; differing row order is resolved by IDs, never by positional pairing.
@@ -153,8 +153,9 @@ Different transition counts across regions are supported.
 Export from already loaded fitting outputs without loading an untrusted pickle:
 
 ```python
-np.savez_compressed(
-    "transition_posteriors/GC.npz", tau=tau_samples,
+from coupling.array_store import save_arrays
+save_arrays(
+    "transition_posteriors/GC.h5", tau=tau_samples,
     trial_id=trial_ids, stimulus=stimulus_labels, stratum=stratum_labels,
     trial_order=chronological_indices, good_trial=joint_qc_mask,
     metadata_json=json.dumps(metadata),
@@ -187,14 +188,14 @@ Each session writes under `fig08_spike_coupling/` or `fig07_transition_coupling/
 - `correlations.csv`: all tested pairs, counts, exclusions/status, rho, null summaries,
   permutation p-values and correction. Spike rows distinguish baseline/evoked/rolling
   and GC–PC/GC–GC/PC–PC; transition rows include MAE and uncertainty.
-- `nulls.npz`: shuffle samples keyed by `null_key`; transition MAE and sampled posterior
+- `nulls.h5`: shuffle samples keyed by `null_key`; transition MAE and sampled posterior
   rho have `_mae` and `_posterior_rho` suffixes when enough trials exist.
 - `summary.png` and `.pdf`: session plots; not a complete manuscript panel set.
 - `retention.json`: trial labels and joint masks, plus unit inclusion or fit metadata.
 - `provenance.json`: resolved configuration, seeds, input hashes, code/reference revisions.
 - `route_contrasts.csv`, when configured matched pairs are estimable: ortho minus retro
   rho for the same pair/stratum/window. This is a descriptive contrast, not a route test.
-- Transitions additionally save `posterior_summary.npz` with matched trial IDs, masks,
+- Transitions additionally save `posterior_summary.h5` with matched trial IDs, masks,
   modes and variances for inspecting uncertain trials.
 
 The run root contains `all_sessions.csv` with session and animal labels. Units/pairs

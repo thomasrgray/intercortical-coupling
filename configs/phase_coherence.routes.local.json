@@ -3,27 +3,27 @@
   "sessions": {
     "/media/thomas/Data/TG22/Feb2_OrthoRetro_TG22_260202_170014": {
       "animal_id": "TG22",
-      "input": "/home/thomas/intercortical-coupling/results/Feb2_OrthoRetro_TG22_260202_170014_prep_01/cleaned_lfp.npz"
+      "input": "/home/thomas/intercortical-coupling/results/Feb2_OrthoRetro_TG22_260202_170014_prep_01/cleaned_lfp.h5"
     },
     "/media/thomas/Data/TG22/Feb3_OrthoRetro_TG22_260203_142754": {
       "animal_id": "TG22",
-      "input": "/home/thomas/intercortical-coupling/results/phase_inputs_01/Feb3_OrthoRetro_TG22_260203_142754-9600e5ad00/prepared_20261014_150552/cleaned_lfp.npz"
+      "input": "/home/thomas/intercortical-coupling/results/phase_inputs_01/Feb3_OrthoRetro_TG22_260203_142754-9600e5ad00/prepared_20261014_150552/cleaned_lfp.h5"
     },
     "/media/thomas/Data/TG22/Feb4_OrthoRetro_TG22_260204_163413": {
       "animal_id": "TG22",
-      "input": "/home/thomas/intercortical-coupling/results/phase_inputs_01/Feb4_OrthoRetro_TG22_260204_163413-ea35650e36/prepared_20261014_151227/cleaned_lfp.npz"
+      "input": "/home/thomas/intercortical-coupling/results/phase_inputs_01/Feb4_OrthoRetro_TG22_260204_163413-ea35650e36/prepared_20261014_151227/cleaned_lfp.h5"
     },
     "/media/thomas/Data/TG23/Feb1_OrthoRetro_TG23_260201_165312": {
       "animal_id": "TG23",
-      "input": "/home/thomas/intercortical-coupling/results/phase_inputs_01/Feb1_OrthoRetro_TG23_260201_165312-9f49015da3/prepared_20261014_151522/cleaned_lfp.npz"
+      "input": "/home/thomas/intercortical-coupling/results/phase_inputs_01/Feb1_OrthoRetro_TG23_260201_165312-9f49015da3/prepared_20261014_151522/cleaned_lfp.h5"
     },
     "/media/thomas/Data/TG23/Feb2_OrthoRetro_TG23_260202_180518": {
       "animal_id": "TG23",
-      "input": "/home/thomas/intercortical-coupling/results/phase_inputs_01/Feb2_OrthoRetro_TG23_260202_180518-df56e7fe43/prepared_20261014_152131/cleaned_lfp.npz"
+      "input": "/home/thomas/intercortical-coupling/results/phase_inputs_01/Feb2_OrthoRetro_TG23_260202_180518-df56e7fe43/prepared_20261014_152131/cleaned_lfp.h5"
     },
     "/media/thomas/Data/TG25/D1_retroortho2_260311_155032": {
       "animal_id": "TG25",
-      "input": "/home/thomas/intercortical-coupling/results/phase_inputs_01/D1_retroortho2_260311_155032-8993c8b927/prepared_20261014_152833/cleaned_lfp.npz"
+      "input": "/home/thomas/intercortical-coupling/results/phase_inputs_01/D1_retroortho2_260311_155032-8993c8b927/prepared_20261014_152833/cleaned_lfp.h5"
     }
   }
 }

@@ -1,3 +1,5 @@
+
+from coupling.array_store import load_arrays, save_arrays
 import unittest
 import numpy as np
 from coupling.power import normalize_power
@@ -40,19 +42,19 @@ class PipelineTests(unittest.TestCase):
             x[2]=np.nan  # excluded channel must never enter STFT
             x[:,6]=np.nan # excluded event must never enter STFT
             mask=np.ones((3,7),bool);mask[:,6]=False
-            np.savez(p/'in.npz',lfp_uv=x,time_s=t,stimulus=np.array([*STIMULI,'BA']),
+            save_arrays(p/'in.h5',lfp_uv=x,time_s=t,stimulus=np.array([*STIMULI,'BA']),
                 electrode_id=[12,59,13],region=['GC','PC','GC'],good_channel=[True,True,False],
                 good_trial=mask,animal_id='test',session_id='test',provenance_json=json.dumps(
                 dict(source='test',reference='test',filtering='test',qc_method='test',event_alignment='TTL')))
             with patch('coupling.power.plot_panel'):
-                analyze(p/'in.npz',p/'out')
-            with np.load(p/'out/session_power.npz') as out:
+                analyze(p/'in.h5',p/'out')
+            with load_arrays(p/'out/session_power.h5') as out:
                 self.assertEqual(out['z_power'].shape[:3],(2,6,36))
                 self.assertTrue(np.isfinite(out['z_power']).all())
                 self.assertTrue((out['n_channels']==1).all())
                 f,tt,z,_=normalize_power(x[0,0],t)
                 keep=(tt>=-1-1e-9)&(tt<=1.75+1e-9)
                 np.testing.assert_allclose(out['z_power'][0,0],z[:,keep])
-            with self.assertRaises(FileExistsError):analyze(p/'in.npz',p/'out')
+            with self.assertRaises(FileExistsError):analyze(p/'in.h5',p/'out')
 
 if __name__=="__main__":unittest.main()

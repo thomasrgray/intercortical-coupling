@@ -1,3 +1,5 @@
+
+from coupling.array_store import load_arrays, save_arrays
 import json
 from pathlib import Path
 import tempfile
@@ -16,7 +18,7 @@ class Figure6Tests(unittest.TestCase):
         t, f = np.linspace(-1, 1, 11), np.array([4., 8., 12.])
         for label, value in [('oBA', .7), ('BA', .3)]:
             folder = source/label; folder.mkdir()
-            np.savez(folder/'phase_coherence.npz', time_s=t, frequency_hz=f,
+            save_arrays(folder/'phase_coherence.h5', time_s=t, frequency_hz=f,
                      band=['theta'], band_limits_hz=[[3, 8]], selected_electrode_id=[1, 33],
                      alignment_label='Time from stimulus DIN onset (s)',
                      bootstrap_band=np.full((4, 1, len(t)), value),
@@ -31,7 +33,7 @@ class Figure6Tests(unittest.TestCase):
             out = export(root/'panels', phase_session=source)
             for ext in ('pdf', 'svg', 'png'):
                 self.assertGreater((out/f'phase_BA_band_0.{ext}').stat().st_size, 100)
-            with np.load(out/'phase_BA_values.npz') as values:
+            with load_arrays(out/'phase_BA_values.h5') as values:
                 np.testing.assert_allclose(values['ortho_coherence']-values['retro_coherence'], .4)
             manifest = json.loads((out/'manifest.json').read_text())
             self.assertEqual(manifest['phase']['omitted_comparisons'], ['IA', 'route'])
@@ -43,11 +45,11 @@ class Figure6Tests(unittest.TestCase):
     def test_grid_mismatch_leaves_no_export(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp); source = self.fixture(root)
-            path = source/'BA/phase_coherence.npz'
-            with np.load(path) as d:
+            path = source/'BA/phase_coherence.h5'
+            with load_arrays(path) as d:
                 values = dict(d)
             values['time_s'] += .01
-            np.savez(path, **values)
+            save_arrays(path, **values)
             with self.assertRaisesRegex(ValueError, 'different time_s'):
                 export(root/'panels', phase_session=source)
             self.assertFalse((root/'panels').exists())
@@ -73,17 +75,17 @@ class Figure6Tests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             z = np.ones((2, 4, 3, 11)); z[0, 0, 0] = np.nan
-            path = root/'session_power.npz'
-            np.savez(path, z_power=z, time_s=np.linspace(-1, 1, 11), frequency_hz=[4,8,12],
+            path = root/'session_power.h5'
+            save_arrays(path, z_power=z, time_s=np.linspace(-1, 1, 11), frequency_hz=[4,8,12],
                      region=['GC', 'PC'], stimulus=['BA','oBA','IA','oIA'])
             (root/'provenance.json').write_text(json.dumps({'preprocessing': {'event_alignment': 'inhalation'}}))
             with patch('coupling.figure6.heatmap') as draw:
                 out = export(root/'panels', power=path)
                 self.assertEqual(draw.call_count, 8)
                 self.assertIn('inhalation', draw.call_args.args[7])
-            with np.load(out/'power_values.npz') as data:
+            with load_arrays(out/'power_values.h5') as data:
                 self.assertTrue(np.isnan(data['z_power'][0,0,0]).all())
-            np.savez(path, z_power=z[:, :, :, :-1], time_s=np.linspace(-1,1,11),
+            save_arrays(path, z_power=z[:, :, :, :-1], time_s=np.linspace(-1,1,11),
                      frequency_hz=[4,8,12], region=['GC','PC'], stimulus=['BA','oBA','IA','oIA'])
             with self.assertRaisesRegex(ValueError, 'Power axes'):
                 export(root/'invalid', power=path)
@@ -96,7 +98,7 @@ class Figure6Tests(unittest.TestCase):
             listing = root/'sessions.txt'
             listing.write_text(str(root/'bad') + '\n' + str(root/'good') + '\n')
             config = root/'config.json'; config.write_text('{}')
-            ready = {'source': root/'good/input.npz', 'counts': {'BA': 3},
+            ready = {'source': root/'good/input.h5', 'counts': {'BA': 3},
                      'electrode_id': np.array([1, 33]), 'channels': np.array([0, 1])}
             with patch('coupling.phase_coherence.load_input', side_effect=[ValueError('bad mapping'), ready]):
                 rows = run(listing, config, root/'check', check=True)

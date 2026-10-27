@@ -16,7 +16,7 @@ are not modified; run into a fresh output directory.
 | Step | Reference repository profile |
 |---|---|
 | Input | Sorted spike arrays, not electrode-level detected timestamps |
-| Unit inclusion | All mapped sorted units, matching the source's `get_region_units()` use; an explicit `eligible_unit_ids` list / NPZ mask still applies |
+| Unit inclusion | All mapped sorted units, matching the source's `get_region_units()` use; an explicit `eligible_unit_ids` list / HDF5 mask still applies |
 | Region order | Larger population first, used as the shuffled population |
 | Window | 0–2 s after stimulus onset; equivalent to source samples 2000:4000 for your 1 ms, 2 s pre-onset arrays |
 | Preprocessing | Count spikes, first differences across chronological trials within each stimulus, then trial-axis z-score |
@@ -38,7 +38,7 @@ The repository profile overrides `windows_s`, `rolling_s`, `detrend`,
 `single_units_only`, and `min_trials` in old configs. Resolved settings are saved in
 preflight/provenance. It uses evoked only, no rolling windows, first differences
 and z-score, all mapped units, and at least three differences for finite inference.
-Reviewed NPZ good-unit/trial masks remain effective. Invalid/constant pairs count
+Reviewed HDF5 good-unit/trial masks remain effective. Invalid/constant pairs count
 as non-significant in the fraction denominator, as the source's `NaN < .05`
 comparison does; both total and valid pair counts are exported.
 
@@ -71,10 +71,10 @@ Primary session outputs under `fig08_spike_coupling/`:
 
 - `significant_fractions.pdf` / `.png` / `.svg`: observed fractions vs 5–95% shuffle ranges.
 - `significant_fractions.csv`: stimulus, region comparison, denominators, fraction and bounds.
-- `fraction_nulls.npz`: repeat-wise fractions, with raw and jittered versions.
+- `fraction_nulls.h5`: repeat-wise fractions, with raw and jittered versions.
 - `intra_region_pooled.csv`: across-stimulus within-region fraction summaries.
 - `correlations.csv`: rho, `p_spearman`, percentile and pair-level flags. No blanket pairwise Bonferroni column in this profile.
-- `nulls.npz`: rho and `_p_spearman` arrays for each `null_key`.
+- `nulls.h5`: rho and `_p_spearman` arrays for each `null_key`.
 - `summary.pdf`: secondary descriptive rho scatterplot; not the primary reference statistic.
 
 The root `all_session_significant_fractions.csv` and matching figures combine
@@ -85,7 +85,7 @@ repository hypothesis test.
 ## Transition setup and aggregation
 
 Independent four-state models (three transitions per region) are required, with
-matching fit intervals, alignment and bin widths. The input NPZ contract is unchanged:
+matching fit intervals, alignment and bin widths. The input HDF5 contract is unchanged:
 see [posterior export instructions](mahmood_spike_transition.md#transition-correlations-fit-inputs-are-a-separate-prerequisite).
 Model fitting itself is upstream, as in the source scripts.
 
@@ -117,9 +117,9 @@ coupling-transition-corr configs/fin_inter_list.txt \
   --profile repository --seed 0
 ```
 
-Outputs include `matched_transitions.csv`, `matched_nulls.npz`,
+Outputs include `matched_transitions.csv`, `matched_nulls.h5`,
 `uncertainty_ranked_windows.csv` (when >=30 accepted trials), all-to-all
-`correlations.csv` / `nulls.npz`, and run-level `transition_population.csv` plus
+`correlations.csv` / `nulls.h5`, and run-level `transition_population.csv` plus
 heatmaps. The source's misleading `mse` name is replaced by `mae_ms`; raw bin timing
 errors are converted to milliseconds, while ranks/percentiles are unchanged.
 
@@ -131,7 +131,7 @@ errors are converted to milliseconds, while ranks/percentiles are unchanged.
 - Laser strata remain separate, and joint masks / explicit trial IDs prevent accidental
   cross-condition or mismatched-trial comparisons. The reference has no such general guard.
 - Region inclusion and sampling metadata remain explicit. Source recording HDF5 files
-  are read-only; portable CSV/NPZ outputs replace in-place PyTables writes and unsafe
+  are read-only; portable CSV/HDF5 outputs replace in-place PyTables writes and unsafe
   model-pickle loading.
 - Cross-session binomial calculations reproduce the source's session-level approach.
   Repeated sessions from the same animal are not independent biological replicates;

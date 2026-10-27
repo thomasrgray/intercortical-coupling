@@ -1,4 +1,6 @@
 """Reproducible synthetic Figure 6 smoke run, not study data."""
+
+from coupling.array_store import save_arrays
 import argparse
 import json
 from pathlib import Path
@@ -21,8 +23,8 @@ def main():
     # Generate directly on the canonical 1 kHz input grid.
     x=z[:,700:].transpose(2,0,1)
     t=np.arange(-2000,2500)/1000
-    source=args.output/'synthetic_lfp.npz'
-    np.savez_compressed(source,lfp_uv=x,time_s=t,stimulus=np.repeat(STIMULI,8),
+    source=args.output/'synthetic_lfp.h5'
+    save_arrays(source,lfp_uv=x,time_s=t,stimulus=np.repeat(STIMULI,8),
         electrode_id=[0,32],region=['GC','PC'],event_id=np.arange(n),
         good_channel=np.ones(2,bool),good_trial=np.ones((2,n),bool),
         animal_id='SYNTHETIC',session_id='SYNTHETIC_GC_TO_PC',

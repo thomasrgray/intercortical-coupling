@@ -23,7 +23,7 @@ reads amplifier DAT files. Do not infer CAR merely from `use_auto_CAR=true`.
 Never guess half/half regions or derive the LFP electrode set from sorted units.
 Never shorten all conditions to the minimum trial count. Exclusions preserve IDs.
 
-## Implemented cleaned NPZ input (no pickled objects)
+## Implemented cleaned HDF5 input (no pickled objects)
 
 | Key | Shape/type | Meaning |
 |---|---|---|
@@ -53,7 +53,7 @@ Use baseline mean and population SD, then average trials per channel, then chann
 observations. Plot -1000 to +1750 ms using turbo with a common fixed color scale.
 Pre/post curves are normalized power, not absolute PSD, and are labeled accordingly.
 
-`session_power.npz`: region × stimulus × frequency × time z_power; matching
+`session_power.h5`: region × stimulus × frequency × time z_power; matching
 n_channels at each bin, named coordinates, animal/session IDs and settings.
 `provenance.json`: source SHA256, settings, reference/filter declaration and
 accepted/valid trial counts per electrode/frequency. Archive these with plots.
